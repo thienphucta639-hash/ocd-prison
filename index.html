@@ -86,6 +86,7 @@
         }
         @media (min-width: 768px) { .masonry-grid { column-count: 2; } }
         @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
+        @media (min-width: 1536px) { .masonry-grid { column-count: 4; } }
         
         .paper-card {
             background: #fdfbf7;
@@ -155,7 +156,8 @@
 <body class="p-4 md:p-12 relative min-h-screen">
     <div class="fairy-lights"></div>
 
-    <div class="max-w-7xl mx-auto relative z-10">
+    <!-- Đã xóa max-w-7xl để giao diện tràn đều ra toàn màn hình khi zoom out -->
+    <div class="w-full mx-auto relative z-10">
         <header class="mb-10 md:mb-14 text-center pt-10">
             <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block cursor-default drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
                 Bù lu Bù loa
@@ -209,13 +211,13 @@
                 </h3>
                 
                 <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <!-- Trải rộng chủ đề: Cho phép chiếm nhiều không gian hơn trên màn lớn -->
+                    <!-- Trải rộng chủ đề trên PC -->
                     <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4">
                         <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
                         <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3"></div>
                     </div>
 
-                    <!-- Phần đánh đập tội phạm gọn gàng bên phải -->
+                    <!-- Phần ưu tiên bị ép dồn gọn lại thành grid bên phải -->
                     <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
                         <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high">
                             <span>🔴 hai</span>
@@ -232,15 +234,8 @@
         </section>
 
         <section>
-            <!-- Thanh Tiến Độ -->
-            <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-6 rounded-3xl relative overflow-hidden">
-                <div class="flex justify-between items-end text-[#e0d8c0] pixel-text text-sm md:text-base mb-3 font-bold relative z-10">
-                    <span id="progressText" class="tracking-widest">TIẾN ĐỘ: 0%</span>
-                    <span id="progressCount" class="tracking-widest text-[#8da47e]">0/0 ĐÃ XỬ LÝ</span>
-                </div>
-                <div class="w-full bg-[#111] rounded-full h-4 border border-gray-700 shadow-inner overflow-hidden relative z-10">
-                    <div id="progressBar" class="bg-[#8da47e] h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_#8da47e]" style="width: 0%"></div>
-                </div>
+            <!-- Khu vực chứa thanh tiến độ cho TỪNG CHỦ ĐỀ RIÊNG BIỆT -->
+            <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-6 rounded-3xl relative overflow-hidden flex flex-col gap-5">
             </div>
 
             <div id="videoGrid" class="masonry-grid pt-4"></div>
@@ -336,6 +331,7 @@
         const filterContainer = document.getElementById('filterContainer');
         const emptyState = document.getElementById('emptyState');
         const submitBtn = document.getElementById('submitBtn');
+        const progressContainer = document.getElementById('progressContainer');
 
         const priorityScore = { 'high': 3, 'medium': 2, 'low': 1 };
         const priorityIcon = { 'high': '🔴 Nguy hiểm', 'medium': '🟡 giảm án', 'low': '🟢 trắng án' };
@@ -466,10 +462,7 @@
 
         function renderVideos() {
             grid.innerHTML = '';
-            const progressContainer = document.getElementById('progressContainer');
-            const progressBar = document.getElementById('progressBar');
-            const progressText = document.getElementById('progressText');
-            const progressCount = document.getElementById('progressCount');
+            progressContainer.innerHTML = ''; // Xóa sạch dữ liệu progress trước đó
             
             let filteredVideos = currentFilter === 'All' 
                 ? [...videos] : videos.filter(v => v.category === currentFilter);
@@ -490,27 +483,40 @@
                 emptyState.classList.add('hidden');
                 progressContainer.classList.remove('hidden');
 
-                // Xử lý Progress Bar
-                const total = filteredVideos.length;
-                const completed = filteredVideos.filter(v => v.completed).length;
-                const percent = Math.round((completed / total) * 100);
+                // Render Tiến Độ riêng rẽ cho từng CHỦ ĐỀ đang được hiển thị
+                const topicsToRender = currentFilter === 'All' 
+                    ? Array.from(new Set(filteredVideos.map(v => v.category))) 
+                    : [currentFilter];
 
-                progressBar.style.width = `${percent}%`;
-                progressCount.innerText = `${completed}/${total} ĐÃ XỬ LÝ`;
-                
-                if (percent === 100) {
-                    progressBar.className = "bg-[#eab308] h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_#eab308]";
-                    progressText.innerText = `TIẾN ĐỘ: 100% (HOÀN THÀNH!)`;
-                    progressText.classList.add("text-[#eab308]");
-                } else {
-                    progressBar.className = "bg-[#8da47e] h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_#8da47e]";
-                    progressText.innerText = `TIẾN ĐỘ: ${percent}%`;
-                    progressText.classList.remove("text-[#eab308]");
-                }
+                topicsToRender.forEach(topic => {
+                    const topicVideos = filteredVideos.filter(v => v.category === topic);
+                    if (topicVideos.length === 0) return;
+
+                    const total = topicVideos.length;
+                    const completed = topicVideos.filter(v => v.completed).length;
+                    const percent = Math.round((completed / total) * 100);
+
+                    const pbColor = percent === 100 ? 'bg-[#eab308]' : 'bg-[#8da47e]';
+                    const shadowColor = percent === 100 ? 'shadow-[0_0_15px_#eab308]' : 'shadow-[0_0_12px_#8da47e]';
+                    const textColor = percent === 100 ? 'text-[#eab308]' : 'text-[#e0d8c0]';
+                    const statusText = percent === 100 ? ' (HOÀN THÀNH!)' : '';
+
+                    const pbHtml = `
+                        <div class="w-full">
+                            <div class="flex justify-between items-end pixel-text text-sm md:text-base mb-2 font-bold relative z-10">
+                                <span class="tracking-widest ${textColor} truncate mr-2">TIẾN ĐỘ [${topic}]: ${percent}%${statusText}</span>
+                                <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} ĐÃ XỬ LÝ</span>
+                            </div>
+                            <div class="w-full bg-[#111] rounded-full h-4 border border-gray-700 shadow-inner overflow-hidden relative z-10">
+                                <div class="${pbColor} h-full rounded-full transition-all duration-700 ease-out ${shadowColor}" style="width: ${percent}%"></div>
+                            </div>
+                        </div>
+                    `;
+                    progressContainer.insertAdjacentHTML('beforeend', pbHtml);
+                });
 
                 filteredVideos.forEach((video, index) => {
                     const card = document.createElement('div');
-                    
                     const rotate = (Math.random() * 3 - 1.5).toFixed(1);
                     
                     // Nếu đã completed thì thẻ mờ đi đôi chút để làm nổi bật những cái chưa xong
