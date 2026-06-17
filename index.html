@@ -99,6 +99,7 @@
             border-radius: 6px;
             cursor: grab;
             word-wrap: break-word;
+            transition: all 0.3s ease;
         }
         .paper-card:active { cursor: grabbing; }
 
@@ -208,12 +209,14 @@
                 </h3>
                 
                 <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <div class="flex-1 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4">
+                    <!-- Trải rộng chủ đề: Cho phép chiếm nhiều không gian hơn trên màn lớn -->
+                    <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4">
                         <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
                         <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3"></div>
                     </div>
 
-                    <div class="flex-1 grid grid-cols-3 gap-2 sm:gap-3">
+                    <!-- Phần đánh đập tội phạm gọn gàng bên phải -->
+                    <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
                         <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high">
                             <span>🔴 hai</span>
                         </div>
@@ -229,6 +232,17 @@
         </section>
 
         <section>
+            <!-- Thanh Tiến Độ -->
+            <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-6 rounded-3xl relative overflow-hidden">
+                <div class="flex justify-between items-end text-[#e0d8c0] pixel-text text-sm md:text-base mb-3 font-bold relative z-10">
+                    <span id="progressText" class="tracking-widest">TIẾN ĐỘ: 0%</span>
+                    <span id="progressCount" class="tracking-widest text-[#8da47e]">0/0 ĐÃ XỬ LÝ</span>
+                </div>
+                <div class="w-full bg-[#111] rounded-full h-4 border border-gray-700 shadow-inner overflow-hidden relative z-10">
+                    <div id="progressBar" class="bg-[#8da47e] h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_#8da47e]" style="width: 0%"></div>
+                </div>
+            </div>
+
             <div id="videoGrid" class="masonry-grid pt-4"></div>
             
             <div id="emptyState" class="hidden text-center py-24 glass-panel rounded-3xl mt-10">
@@ -351,6 +365,7 @@
                     category: document.getElementById('categoryInput').value.trim(),
                     priority: document.getElementById('priorityInput').value,
                     note: document.getElementById('noteInput').value.trim() || "trống thía...",
+                    completed: false, // Mặc định là chưa hoàn thành
                     date: new Date().toLocaleDateString('vi-VN')
                 };
                 videos.push(newVideo);
@@ -384,6 +399,17 @@
             saveToLocalStorage();
             playSound('click');
             renderUI();
+        }
+
+        // Đánh dấu hoàn thành tội phạm
+        function toggleComplete(id) {
+            const index = videos.findIndex(v => v.id === id);
+            if (index !== -1) {
+                videos[index].completed = !videos[index].completed;
+                saveToLocalStorage();
+                playSound('success');
+                renderUI();
+            }
         }
 
         let draggedVideoId = null;
@@ -440,6 +466,10 @@
 
         function renderVideos() {
             grid.innerHTML = '';
+            const progressContainer = document.getElementById('progressContainer');
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const progressCount = document.getElementById('progressCount');
             
             let filteredVideos = currentFilter === 'All' 
                 ? [...videos] : videos.filter(v => v.category === currentFilter);
@@ -454,16 +484,38 @@
             if (filteredVideos.length === 0) {
                 grid.classList.add('hidden');
                 emptyState.classList.remove('hidden');
+                progressContainer.classList.add('hidden');
             } else {
                 grid.classList.remove('hidden');
                 emptyState.classList.add('hidden');
+                progressContainer.classList.remove('hidden');
+
+                // Xử lý Progress Bar
+                const total = filteredVideos.length;
+                const completed = filteredVideos.filter(v => v.completed).length;
+                const percent = Math.round((completed / total) * 100);
+
+                progressBar.style.width = `${percent}%`;
+                progressCount.innerText = `${completed}/${total} ĐÃ XỬ LÝ`;
+                
+                if (percent === 100) {
+                    progressBar.className = "bg-[#eab308] h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_15px_#eab308]";
+                    progressText.innerText = `TIẾN ĐỘ: 100% (HOÀN THÀNH!)`;
+                    progressText.classList.add("text-[#eab308]");
+                } else {
+                    progressBar.className = "bg-[#8da47e] h-full rounded-full transition-all duration-700 ease-out shadow-[0_0_12px_#8da47e]";
+                    progressText.innerText = `TIẾN ĐỘ: ${percent}%`;
+                    progressText.classList.remove("text-[#eab308]");
+                }
 
                 filteredVideos.forEach((video, index) => {
                     const card = document.createElement('div');
                     
                     const rotate = (Math.random() * 3 - 1.5).toFixed(1);
                     
-                    card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between`;
+                    // Nếu đã completed thì thẻ mờ đi đôi chút để làm nổi bật những cái chưa xong
+                    const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
+                    card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
                     card.style.transform = `rotate(${rotate}deg)`;
                     
                     card.setAttribute('draggable', 'true');
@@ -496,20 +548,25 @@
                                 </span>
                             </div>
                             
-                            <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words">${video.title}</h3>
+                            <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words ${video.completed ? 'line-through decoration-2 decoration-[#e46b5a]/50' : ''}">${video.title}</h3>
                             
                             <a href="${video.link}" target="_blank" class="inline-block text-sm text-[#e46b5a] font-bold hover:text-[#c45242] underline decoration-dashed underline-offset-4 mb-5 break-words line-clamp-2 transition-colors">
                                 ↳ Khám phá: ${domain}
                             </a>
 
                             <div class="bg-black/5 p-4 rounded-xl border border-black/10 mb-4 shadow-inner break-words">
-                                <p class="handwritten whitespace-pre-wrap">${video.note}</p>
+                                <p class="handwritten whitespace-pre-wrap ${video.completed ? 'line-through decoration-1 decoration-gray-400' : ''}">${video.note}</p>
                             </div>
                         </div>
 
                         <div class="flex items-center justify-between mt-auto pt-4 border-t-2 border-dashed border-gray-300/60">
                             <span class="text-xs font-bold text-gray-500 pixel-text text-base">ID:${video.id.slice(-4)} | ${video.date}</span>
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-1 sm:gap-2">
+                                <button onclick="toggleComplete('${video.id}')" class="${video.completed ? 'text-green-500' : 'text-gray-400 hover:text-green-500'} hover:scale-125 transition-transform p-1 cursor-pointer" title="Hoàn thành">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                </button>
                                 <button onclick="editVideo('${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Chỉnh sửa">
                                     <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
