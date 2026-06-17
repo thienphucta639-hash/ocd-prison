@@ -151,39 +151,39 @@
         }
     </style>
 </head>
-<body class="p-6 md:p-12 relative min-h-screen">
+<body class="p-4 md:p-12 relative min-h-screen">
     <div class="fairy-lights"></div>
 
     <div class="max-w-7xl mx-auto relative z-10">
-        <header class="mb-14 text-center pt-10">
+        <header class="mb-10 md:mb-14 text-center pt-10">
             <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block cursor-default drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
                 Bù lu Bù loa
             </h1>
             <p class="text-[#a39785] font-medium text-lg tracking-wide">Tôi bị Obsessive Compulsive Disorder</p>
         </header>
 
-        <section class="glass-panel p-8 rounded-[2rem] mb-16 relative hover-spring">
-            <div class="absolute -top-6 -left-6 text-5xl transform -rotate-12 drop-shadow-2xl">🦹‍♂️</div>
-            <div class="absolute -bottom-6 -right-6 text-5xl transform rotate-12 drop-shadow-2xl">🔗</div>
+        <section class="glass-panel p-5 md:p-8 rounded-[2rem] mb-12 md:mb-16 relative hover-spring">
+            <div class="absolute -top-4 -left-2 md:-top-6 md:-left-6 text-4xl md:text-5xl transform -rotate-12 drop-shadow-2xl z-20">🦹‍♂️</div>
+            <div class="absolute -bottom-4 -right-2 md:-bottom-6 md:-right-6 text-4xl md:text-5xl transform rotate-12 drop-shadow-2xl z-20">🔗</div>
             
             <h2 class="text-2xl font-bold mb-6 text-[#fdfae2] flex items-center gap-3">
                 <span class="pixel-text text-[#e46b5a] text-3xl">>></span> Vứt vào mồ chôn
             </h2>
             
-            <form id="videoForm" class="flex flex-col gap-6">
-                <div class="flex flex-col md:flex-row gap-5">
+            <form id="videoForm" class="flex flex-col gap-5 md:gap-6 relative z-10">
+                <div class="flex flex-col md:flex-row gap-4 md:gap-5">
                     <input type="url" id="linkInput" placeholder="🔗 đắp mộ cuộc lìnk" required 
-                        class="cute-input flex-1 px-6 py-4 rounded-2xl font-semibold placeholder-gray-500">
+                        class="cute-input flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
                     
                     <input type="text" id="titleInput" placeholder="📝 đặt tên tội phạm" required 
-                        class="cute-input flex-1 px-6 py-4 rounded-2xl font-semibold placeholder-gray-500">
+                        class="cute-input flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
                 </div>
 
-                <div class="flex flex-col md:flex-row gap-5">
+                <div class="flex flex-col md:flex-row gap-4 md:gap-5">
                     <input type="text" id="categoryInput" placeholder="🏷️ ghi chú (vd: sigma, 67, brainrot,..)" required 
-                        class="cute-input flex-1 md:w-1/3 px-6 py-4 rounded-2xl font-semibold placeholder-gray-500">
+                        class="cute-input flex-1 md:w-1/3 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
                     
-                    <select id="priorityInput" class="cute-input md:w-1/4 px-6 py-4 rounded-2xl font-semibold cursor-pointer">
+                    <select id="priorityInput" class="cute-input md:w-1/4 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold cursor-pointer">
                         <option value="high" class="bg-[#1a1a1a] text-[#e46b5a]">🔴 Rét ( Quách liền )</option>
                         <option value="medium" selected class="bg-[#1a1a1a] text-[#eab308]">🟡 Dé lồ ( No mồ )</option>
                         <option value="low" class="bg-[#1a1a1a] text-[#8da47e]">🟢 Gờ rin ( Cửa sau )</option>
@@ -192,35 +192,35 @@
 
                 <div class="relative w-full">
                     <textarea id="noteInput" rows="2" placeholder="✍️ đây là nơi bình thường nhất vì nó là ghi chú"
-                        class="cute-input w-full px-6 py-4 rounded-2xl font-medium resize-y handwritten text-xl placeholder-gray-500"></textarea>
+                        class="cute-input w-full px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-medium resize-y handwritten text-xl placeholder-gray-500"></textarea>
                 </div>
                 
-                <button type="submit" id="submitBtn" class="bg-[#e46b5a] text-[#111] font-bold pixel-text text-xl md:text-2xl px-10 py-4 rounded-2xl hover:bg-[#ff7b6a] transition-all transform active:scale-90 shadow-[0_0_25px_rgba(228,107,90,0.6)] self-center mt-2 tracking-widest">
+                <button type="submit" id="submitBtn" class="bg-[#e46b5a] text-[#111] font-bold pixel-text text-lg md:text-2xl px-4 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-[#ff7b6a] transition-all transform active:scale-90 shadow-[0_0_25px_rgba(228,107,90,0.6)] self-center mt-2 tracking-widest w-full md:w-auto whitespace-nowrap">
                     [ Giam tội phạm ]
                 </button>
             </form>
         </section>
 
         <section class="mb-10">
-            <div class="glass-panel p-6 rounded-3xl">
-                <h3 class="font-bold text-[#fdfae2] mb-5 text-lg flex items-center gap-2">
+            <div class="glass-panel p-4 md:p-6 rounded-3xl">
+                <h3 class="font-bold text-[#fdfae2] mb-5 text-base md:text-lg flex items-center gap-2">
                     <span>⛓️ Danh sách đánh đập tội phạm ( kéo thả tên vào để đổi ưu tiên bị đập )</span>
                 </h3>
                 
-                <div class="flex flex-col lg:flex-row gap-8">
-                    <div class="flex-1 border-r border-gray-700 pr-4">
+                <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
+                    <div class="flex-1 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4">
                         <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
-                        <div id="filterContainer" class="flex flex-wrap gap-3"></div>
+                        <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3"></div>
                     </div>
 
-                    <div class="flex-1 flex flex-wrap sm:flex-nowrap gap-3">
-                        <div class="drop-zone flex-1 bg-[#251515] rounded-xl p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-lg" data-priority="high">
+                    <div class="flex-1 grid grid-cols-3 gap-2 sm:gap-3">
+                        <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high">
                             <span>🔴 hai</span>
                         </div>
-                        <div class="drop-zone flex-1 bg-[#252515] rounded-xl p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-lg" data-priority="medium">
+                        <div class="drop-zone bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="medium">
                             <span>🟡 mít</span>
                         </div>
-                        <div class="drop-zone flex-1 bg-[#152515] rounded-xl p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-lg" data-priority="low">
+                        <div class="drop-zone bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="low">
                             <span>🟢 low cortisol</span>
                         </div>
                     </div>
@@ -463,7 +463,7 @@
                     
                     const rotate = (Math.random() * 3 - 1.5).toFixed(1);
                     
-                    card.className = `paper-card p-6 hover-spring priority-${video.priority} flex flex-col justify-between`;
+                    card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between`;
                     card.style.transform = `rotate(${rotate}deg)`;
                     
                     card.setAttribute('draggable', 'true');
