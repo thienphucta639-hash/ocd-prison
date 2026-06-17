@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>mồ chôn ocd</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&family=Quicksand:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
+    
+    <style>
+        /* ================= VIBE & LAYOUT ================= */
+        body {
+            background-color: #161616;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(141, 164, 126, 0.12) 0%, transparent 55%),
+                radial-gradient(circle at 85% 30%, rgba(228, 107, 90, 0.12) 0%, transparent 55%),
+                radial-gradient(rgba(255, 255, 255, 0.03) 2px, transparent 2px);
+            background-size: 100% 100%, 100% 100%, 30px 30px;
+            font-family: 'Quicksand', sans-serif;
+            overflow-x: hidden;
+            color: #e0d8c0;
+        }
+
+        .fairy-lights {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 60px;
+            pointer-events: none;
+            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 Q25,20 50,10 T100,10" fill="none" stroke="%23444" stroke-width="1"/></svg>') repeat-x;
+            background-size: 150px 100%;
+            filter: drop-shadow(0 6px 12px rgba(253, 250, 226, 0.4));
+            z-index: 0;
+        }
+
+        /* ================= MICRO-INTERACTIONS & ANIMATIONS ================= */
+        .hover-spring {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .hover-spring:hover {
+            transform: translateY(-6px) scale(1.02) rotate(1deg);
+            box-shadow: 0 22px 35px rgba(0,0,0,0.5), 0 0 20px rgba(141, 164, 126, 0.2);
+        }
+
+        .glass-panel {
+            background: linear-gradient(135deg, rgba(40, 40, 40, 0.6), rgba(20, 20, 20, 0.8));
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4);
+        }
+
+        .cute-input {
+            border: 2px solid rgba(255,255,255,0.05);
+            background: rgba(15, 15, 15, 0.7);
+            color: #fdfae2;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        }
+        .cute-input:focus {
+            outline: none;
+            border-color: #8da47e;
+            box-shadow: 0 0 20px rgba(141, 164, 126, 0.2);
+            transform: scale(1.01);
+            background: rgba(20, 20, 20, 0.9);
+        }
+
+        .typing-particle {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 50%;
+            background: #e46b5a;
+            box-shadow: 0 0 10px #e46b5a;
+            animation: floatUp 0.6s ease-out forwards;
+            z-index: 9999;
+        }
+        @keyframes floatUp {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-40px) scale(0); opacity: 0; }
+        }
+
+        /* ================= BỐ CỤC BẤT ĐỐI XỨNG (MASONRY LAYOUT) ================= */
+        .masonry-grid {
+            column-count: 1;
+            column-gap: 2rem;
+        }
+        @media (min-width: 768px) { .masonry-grid { column-count: 2; } }
+        @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
+        
+        .paper-card {
+            background: #fdfbf7;
+            background-image: radial-gradient(#e5e0d8 1px, transparent 1px);
+            background-size: 20px 20px;
+            position: relative;
+            break-inside: avoid;
+            margin-bottom: 2rem;
+            color: #3b312a;
+            box-shadow: 4px 8px 20px rgba(0,0,0,0.4);
+            border-radius: 6px;
+            cursor: grab;
+            word-wrap: break-word;
+        }
+        .paper-card:active { cursor: grabbing; }
+
+        .priority-high { border-top: 8px solid #e46b5a; }
+        .priority-medium { border-top: 8px solid #eab308; }
+        .priority-low { border-top: 8px solid #8da47e; }
+
+        .washi-tape {
+            position: absolute;
+            top: -14px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-2deg);
+            width: 110px;
+            height: 34px;
+            background-image: repeating-linear-gradient(
+                45deg,
+                transparent,
+                transparent 10px,
+                rgba(255, 255, 255, 0.15) 10px,
+                rgba(255, 255, 255, 0.15) 20px
+            );
+            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+            backdrop-filter: blur(4px);
+            z-index: 10;
+            border-radius: 2px;
+        }
+
+        .handwritten {
+            font-family: 'Mali', cursive;
+            font-size: 1.15rem;
+            color: #2a231e;
+            line-height: 1.5;
+        }
+
+        .pixel-text {
+            font-family: 'Space Mono', monospace;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .drop-zone {
+            transition: all 0.3s ease;
+            border: 2px dashed rgba(255,255,255,0.1);
+        }
+        .drop-zone.drag-over {
+            border-color: #e46b5a;
+            background: rgba(228, 107, 90, 0.15);
+            transform: scale(1.03);
+            box-shadow: inset 0 0 15px rgba(228, 107, 90, 0.2);
+        }
+    </style>
+</head>
+<body class="p-6 md:p-12 relative min-h-screen">
+    <div class="fairy-lights"></div>
+
+    <div class="max-w-7xl mx-auto relative z-10">
+        <header class="mb-14 text-center pt-10">
+            <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block cursor-default drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
+                Bù lu Bù loa
+            </h1>
+            <p class="text-[#a39785] font-medium text-lg tracking-wide">Tôi bị Obsessive Compulsive Disorder</p>
+        </header>
+
+        <section class="glass-panel p-8 rounded-[2rem] mb-16 relative hover-spring">
+            <div class="absolute -top-6 -left-6 text-5xl transform -rotate-12 drop-shadow-2xl">🦹‍♂️</div>
+            <div class="absolute -bottom-6 -right-6 text-5xl transform rotate-12 drop-shadow-2xl">🔗</div>
+            
+            <h2 class="text-2xl font-bold mb-6 text-[#fdfae2] flex items-center gap-3">
+                <span class="pixel-text text-[#e46b5a] text-3xl">>></span> Vứt vào mồ chôn
+            </h2>
+            
+            <form id="videoForm" class="flex flex-col gap-6">
+                <div class="flex flex-col md:flex-row gap-5">
+                    <input type="url" id="linkInput" placeholder="🔗 đắp mộ cuộc lìnk" required 
+                        class="cute-input flex-1 px-6 py-4 rounded-2xl font-semibold placeholder-gray-500">
+                    
+                    <input type="text" id="titleInput" placeholder="📝 đặt tên tội phạm" required 
+                        class="cute-input flex-1 px-6 py-4 rounded-2xl font-semibold placeholder-gray-500">
+                </div>
+
+                <div class="flex flex-col md:flex-row gap-5">
+                    <input type="text" id="categoryInput" placeholder="🏷️ ghi chú (vd: sigma, 67, brainrot,..)" required 
+                        class="cute-input flex-1 md:w-1/3 px-6 py-4 rounded-2xl font-semibold placeholder-gray-500">
+                    
+                    <select id="priorityInput" class="cute-input md:w-1/4 px-6 py-4 rounded-2xl font-semibold cursor-pointer">
+                        <option value="high" class="bg-[#1a1a1a] text-[#e46b5a]">🔴 Rét ( Quách liền )</option>
+                        <option value="medium" selected class="bg-[#1a1a1a] text-[#eab308]">🟡 Dé lồ ( No mồ )</option>
+                        <option value="low" class="bg-[#1a1a1a] text-[#8da47e]">🟢 Gờ rin ( Cửa sau )</option>
+                    </select>
+                </div>
+
+                <div class="relative w-full">
+                    <textarea id="noteInput" rows="2" placeholder="✍️ đây là nơi bình thường nhất vì nó là ghi chú"
+                        class="cute-input w-full px-6 py-4 rounded-2xl font-medium resize-y handwritten text-xl placeholder-gray-500"></textarea>
+                </div>
+                
+                <button type="submit" id="submitBtn" class="bg-[#e46b5a] text-[#111] font-bold pixel-text text-xl md:text-2xl px-10 py-4 rounded-2xl hover:bg-[#ff7b6a] transition-all transform active:scale-90 shadow-[0_0_25px_rgba(228,107,90,0.6)] self-center mt-2 tracking-widest">
+                    [ Giam tội phạm ]
+                </button>
+            </form>
+        </section>
+
+        <section class="mb-10">
+            <div class="glass-panel p-6 rounded-3xl">
+                <h3 class="font-bold text-[#fdfae2] mb-5 text-lg flex items-center gap-2">
+                    <span>⛓️ Danh sách đánh đập tội phạm ( kéo thả tên vào để đổi ưu tiên bị đập )</span>
+                </h3>
+                
+                <div class="flex flex-col lg:flex-row gap-8">
+                    <div class="flex-1 border-r border-gray-700 pr-4">
+                        <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
+                        <div id="filterContainer" class="flex flex-wrap gap-3"></div>
+                    </div>
+
+                    <div class="flex-1 flex flex-wrap sm:flex-nowrap gap-3">
+                        <div class="drop-zone flex-1 bg-[#251515] rounded-xl p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-lg" data-priority="high">
+                            <span>🔴 hai</span>
+                        </div>
+                        <div class="drop-zone flex-1 bg-[#252515] rounded-xl p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-lg" data-priority="medium">
+                            <span>🟡 mít</span>
+                        </div>
+                        <div class="drop-zone flex-1 bg-[#152515] rounded-xl p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-lg" data-priority="low">
+                            <span>🟢 low cortisol</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div id="videoGrid" class="masonry-grid pt-4"></div>
+            
+            <div id="emptyState" class="hidden text-center py-24 glass-panel rounded-3xl mt-10">
+                <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">⛓️🥀</div>
+                <p class="text-xl md:text-2xl text-[#8da47e] pixel-text font-bold tracking-widest">phòng giam trống rỗng. Hãy phạm tội</p>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        function playSound(type) {
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            const now = audioCtx.currentTime;
+            
+            if (type === 'hover') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1000, now + 0.03);
+                gain.gain.setValueAtTime(0.01, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+                osc.start(now); osc.stop(now + 0.03);
+            } else if (type === 'click') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain.gain.setValueAtTime(0.05, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'success') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, now); 
+                osc.frequency.setValueAtTime(880, now + 0.1); 
+                gain.gain.setValueAtTime(0, now);
+                gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+                osc.start(now); osc.stop(now + 0.4);
+            } else if (type === 'type') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(400 + Math.random() * 200, now);
+                gain.gain.setValueAtTime(0.005, now);
+                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
+                osc.start(now); osc.stop(now + 0.02);
+            } else if (type === 'drop') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(200, now);
+                osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            }
+        }
+
+        document.querySelectorAll('input, textarea').forEach(input => {
+            input.addEventListener('input', function(e) {
+                playSound('type');
+                
+                const rect = this.getBoundingClientRect();
+                const particle = document.createElement('div');
+                particle.className = 'typing-particle';
+                
+                const size = Math.random() * 4 + 2;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${rect.left + Math.random() * rect.width}px`;
+                particle.style.top = `${rect.top + (Math.random() * 20)}px`;
+                
+                document.body.appendChild(particle);
+                setTimeout(() => particle.remove(), 600);
+            });
+        });
+
+        document.body.addEventListener('mouseenter', (e) => {
+            if(['BUTTON', 'A', 'SELECT', 'INPUT'].includes(e.target.tagName)) playSound('hover');
+        }, true);
+        document.body.addEventListener('mousedown', (e) => {
+            if(['BUTTON', 'A'].includes(e.target.tagName)) playSound('click');
+        });
+
+        let videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
+        let currentFilter = 'All';
+        let editingId = null;
+
+        const form = document.getElementById('videoForm');
+        const grid = document.getElementById('videoGrid');
+        const filterContainer = document.getElementById('filterContainer');
+        const emptyState = document.getElementById('emptyState');
+        const submitBtn = document.getElementById('submitBtn');
+
+        const priorityScore = { 'high': 3, 'medium': 2, 'low': 1 };
+        const priorityIcon = { 'high': '🔴 Nguy hiểm', 'medium': '🟡 giảm án', 'low': '🟢 trắng án' };
+        const tapeColors = { 'high': 'rgba(228, 107, 90, 0.75)', 'medium': 'rgba(234, 179, 8, 0.75)', 'low': 'rgba(141, 164, 126, 0.75)' };
+
+        function saveToLocalStorage() { localStorage.setItem('indieVideos', JSON.stringify(videos)); }
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (editingId) {
+                const index = videos.findIndex(v => v.id === editingId);
+                if (index !== -1) {
+                    videos[index].link = document.getElementById('linkInput').value;
+                    videos[index].title = document.getElementById('titleInput').value;
+                    videos[index].category = document.getElementById('categoryInput').value.trim();
+                    videos[index].priority = document.getElementById('priorityInput').value;
+                    videos[index].note = document.getElementById('noteInput').value.trim() || "trống thía...";
+                }
+                editingId = null;
+                submitBtn.innerText = '[ Giam tội phạm ]';
+            } else {
+                const newVideo = {
+                    id: Date.now().toString(),
+                    link: document.getElementById('linkInput').value,
+                    title: document.getElementById('titleInput').value,
+                    category: document.getElementById('categoryInput').value.trim(),
+                    priority: document.getElementById('priorityInput').value,
+                    note: document.getElementById('noteInput').value.trim() || "trống thía...",
+                    date: new Date().toLocaleDateString('vi-VN')
+                };
+                videos.push(newVideo);
+            }
+            
+            saveToLocalStorage();
+            playSound('success');
+            form.reset();
+            document.getElementById('priorityInput').value = 'medium';
+            renderUI();
+        });
+
+        function editVideo(id) {
+            const video = videos.find(v => v.id === id);
+            if (!video) return;
+            
+            editingId = id;
+            document.getElementById('linkInput').value = video.link;
+            document.getElementById('titleInput').value = video.title;
+            document.getElementById('categoryInput').value = video.category || '';
+            document.getElementById('priorityInput').value = video.priority;
+            document.getElementById('noteInput').value = video.note === "trống thía..." ? "" : video.note;
+            
+            submitBtn.innerText = '[ Cập nhật tội phạm ]';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            playSound('click');
+        }
+
+        function deleteVideo(id) {
+            videos = videos.filter(v => v.id !== id);
+            saveToLocalStorage();
+            playSound('click');
+            renderUI();
+        }
+
+        let draggedVideoId = null;
+
+        document.querySelectorAll('.drop-zone').forEach(zone => {
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('drag-over');
+            });
+            zone.addEventListener('dragleave', e => {
+                zone.classList.remove('drag-over');
+            });
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('drag-over');
+                const newPriority = zone.getAttribute('data-priority');
+                
+                if(draggedVideoId) {
+                    const videoIndex = videos.findIndex(v => v.id === draggedVideoId);
+                    if(videoIndex > -1 && videos[videoIndex].priority !== newPriority) {
+                        videos[videoIndex].priority = newPriority;
+                        saveToLocalStorage();
+                        playSound('drop');
+                        renderUI();
+                    }
+                }
+            });
+        });
+
+        function renderFilters() {
+            const topics = new Set(videos.map(v => v.category));
+            const cats = ['All', ...Array.from(topics)];
+            filterContainer.innerHTML = '';
+
+            cats.forEach(cat => {
+                const btn = document.createElement('button');
+                btn.innerText = cat === 'All' ? '⛓️🥀 TẤT CẢ' : `▤ ${cat}`;
+                
+                let baseClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider ";
+                if (currentFilter === cat) {
+                    btn.className = baseClasses + "bg-[#8da47e] text-[#1a1a1a] shadow-[0_0_15px_#8da47e] transform scale-105";
+                } else {
+                    btn.className = baseClasses + "bg-[#2a2a2a] text-gray-400 border border-gray-700 hover:text-white hover:border-[#8da47e]";
+                }
+
+                btn.onclick = () => {
+                    currentFilter = cat;
+                    playSound('click');
+                    renderUI();
+                };
+                filterContainer.appendChild(btn);
+            });
+        }
+
+        function renderVideos() {
+            grid.innerHTML = '';
+            
+            let filteredVideos = currentFilter === 'All' 
+                ? [...videos] : videos.filter(v => v.category === currentFilter);
+
+            filteredVideos.sort((a, b) => {
+                if (priorityScore[b.priority] !== priorityScore[a.priority]) {
+                    return priorityScore[b.priority] - priorityScore[a.priority];
+                }
+                return b.id - a.id;
+            });
+
+            if (filteredVideos.length === 0) {
+                grid.classList.add('hidden');
+                emptyState.classList.remove('hidden');
+            } else {
+                grid.classList.remove('hidden');
+                emptyState.classList.add('hidden');
+
+                filteredVideos.forEach((video, index) => {
+                    const card = document.createElement('div');
+                    
+                    const rotate = (Math.random() * 3 - 1.5).toFixed(1);
+                    
+                    card.className = `paper-card p-6 hover-spring priority-${video.priority} flex flex-col justify-between`;
+                    card.style.transform = `rotate(${rotate}deg)`;
+                    
+                    card.setAttribute('draggable', 'true');
+                    card.addEventListener('dragstart', (e) => {
+                        draggedVideoId = video.id;
+                        setTimeout(() => card.classList.add('opacity-40', 'scale-95'), 0);
+                        playSound('click');
+                    });
+                    card.addEventListener('dragend', () => {
+                        draggedVideoId = null;
+                        card.classList.remove('opacity-40', 'scale-95');
+                    });
+
+                    let domain = '';
+                    try {
+                        const urlObj = new URL(video.link);
+                        domain = urlObj.hostname.replace('www.', '');
+                    } catch(e) { domain = 'Liên kết không xác định'; }
+
+                    card.innerHTML = `
+                        <div class="washi-tape" style="background-color: ${tapeColors[video.priority]}; transform: translateX(-50%) rotate(${Math.random() * 4 - 2}deg)"></div>
+                        
+                        <div class="mt-5">
+                            <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
+                                <span class="bg-[#222] text-[#8da47e] text-xs px-3 py-1.5 rounded pixel-text border border-[#8da47e]/50 font-bold shadow-sm">
+                                    ${video.category}
+                                </span>
+                                <span class="text-xs font-bold px-2 py-1 bg-white/50 rounded-md border text-gray-800 shadow-sm whitespace-nowrap" title="Mức độ ưu tiên">
+                                    ${priorityIcon[video.priority]}
+                                </span>
+                            </div>
+                            
+                            <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words">${video.title}</h3>
+                            
+                            <a href="${video.link}" target="_blank" class="inline-block text-sm text-[#e46b5a] font-bold hover:text-[#c45242] underline decoration-dashed underline-offset-4 mb-5 break-words line-clamp-2 transition-colors">
+                                ↳ Khám phá: ${domain}
+                            </a>
+
+                            <div class="bg-black/5 p-4 rounded-xl border border-black/10 mb-4 shadow-inner break-words">
+                                <p class="handwritten whitespace-pre-wrap">${video.note}</p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center justify-between mt-auto pt-4 border-t-2 border-dashed border-gray-300/60">
+                            <span class="text-xs font-bold text-gray-500 pixel-text text-base">ID:${video.id.slice(-4)} | ${video.date}</span>
+                            <div class="flex items-center gap-2">
+                                <button onclick="editVideo('${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Chỉnh sửa">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                </button>
+                                <button onclick="deleteVideo('${video.id}')" class="text-gray-400 hover:text-red-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Hủy liên kết">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            }
+        }
+
+        function renderUI() {
+            renderFilters();
+            renderVideos();
+        }
+
+        renderUI();
+    </script>
+</body>
+</html>
