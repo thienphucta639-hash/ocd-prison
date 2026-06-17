@@ -151,12 +151,27 @@
             transform: scale(1.03);
             box-shadow: inset 0 0 15px rgba(228, 107, 90, 0.2);
         }
+
+        /* Thanh cuộn gọn gàng cho phần tiến độ */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(141, 164, 126, 0.6);
+            border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #8da47e;
+        }
     </style>
 </head>
 <body class="p-4 md:p-12 relative min-h-screen">
     <div class="fairy-lights"></div>
 
-    <!-- Đã xóa max-w-7xl để giao diện tràn đều ra toàn màn hình khi zoom out -->
     <div class="w-full mx-auto relative z-10">
         <header class="mb-10 md:mb-14 text-center pt-10">
             <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block cursor-default drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
@@ -211,13 +226,11 @@
                 </h3>
                 
                 <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <!-- Trải rộng chủ đề trên PC -->
                     <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4">
                         <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
                         <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3"></div>
                     </div>
 
-                    <!-- Phần ưu tiên bị ép dồn gọn lại thành grid bên phải -->
                     <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
                         <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high">
                             <span>🔴 hai</span>
@@ -234,8 +247,11 @@
         </section>
 
         <section>
-            <!-- Khu vực chứa thanh tiến độ cho TỪNG CHỦ ĐỀ RIÊNG BIỆT -->
-            <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-6 rounded-3xl relative overflow-hidden flex flex-col gap-5">
+            <!-- Khu vực chứa thanh tiến độ cho TỪNG CHỦ ĐỀ RIÊNG BIỆT (Được làm gọn) -->
+            <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-5 rounded-3xl relative">
+                <!-- Thanh cuộn dọc + Grid layout giúp tiết kiệm cực nhiều diện tích -->
+                <div id="progressInner" class="max-h-[160px] overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pr-2">
+                </div>
             </div>
 
             <div id="videoGrid" class="masonry-grid pt-4"></div>
@@ -462,7 +478,9 @@
 
         function renderVideos() {
             grid.innerHTML = '';
-            progressContainer.innerHTML = ''; // Xóa sạch dữ liệu progress trước đó
+            
+            const progressInner = document.getElementById('progressInner');
+            progressInner.innerHTML = ''; // Xóa sạch dữ liệu progress trước đó
             
             let filteredVideos = currentFilter === 'All' 
                 ? [...videos] : videos.filter(v => v.category === currentFilter);
@@ -483,7 +501,7 @@
                 emptyState.classList.add('hidden');
                 progressContainer.classList.remove('hidden');
 
-                // Render Tiến Độ riêng rẽ cho từng CHỦ ĐỀ đang được hiển thị
+                // Render Tiến Độ riêng rẽ cho từng CHỦ ĐỀ đang được hiển thị theo định dạng Gọn Gàng
                 const topicsToRender = currentFilter === 'All' 
                     ? Array.from(new Set(filteredVideos.map(v => v.category))) 
                     : [currentFilter];
@@ -499,20 +517,19 @@
                     const pbColor = percent === 100 ? 'bg-[#eab308]' : 'bg-[#8da47e]';
                     const shadowColor = percent === 100 ? 'shadow-[0_0_15px_#eab308]' : 'shadow-[0_0_12px_#8da47e]';
                     const textColor = percent === 100 ? 'text-[#eab308]' : 'text-[#e0d8c0]';
-                    const statusText = percent === 100 ? ' (HOÀN THÀNH!)' : '';
 
                     const pbHtml = `
-                        <div class="w-full">
-                            <div class="flex justify-between items-end pixel-text text-sm md:text-base mb-2 font-bold relative z-10">
-                                <span class="tracking-widest ${textColor} truncate mr-2">TIẾN ĐỘ [${topic}]: ${percent}%${statusText}</span>
-                                <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} ĐÃ XỬ LÝ</span>
+                        <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800">
+                            <div class="flex justify-between items-end pixel-text text-xs md:text-sm mb-2 font-bold relative z-10">
+                                <span class="tracking-widest ${textColor} truncate mr-2" title="${topic}">${topic}: ${percent}%</span>
+                                <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} XONG</span>
                             </div>
-                            <div class="w-full bg-[#111] rounded-full h-4 border border-gray-700 shadow-inner overflow-hidden relative z-10">
+                            <div class="w-full bg-[#0a0a0a] rounded-full h-2 md:h-3 border border-gray-700 shadow-inner overflow-hidden relative z-10">
                                 <div class="${pbColor} h-full rounded-full transition-all duration-700 ease-out ${shadowColor}" style="width: ${percent}%"></div>
                             </div>
                         </div>
                     `;
-                    progressContainer.insertAdjacentHTML('beforeend', pbHtml);
+                    progressInner.insertAdjacentHTML('beforeend', pbHtml);
                 });
 
                 filteredVideos.forEach((video, index) => {
