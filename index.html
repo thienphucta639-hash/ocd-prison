@@ -131,8 +131,11 @@
         .handwritten {
             font-family: 'Mali', cursive;
             font-size: 1.15rem;
-            color: #2a231e;
             line-height: 1.5;
+        }
+
+        .paper-card .handwritten {
+            color: #2a231e;
         }
 
         .pixel-text {
@@ -146,10 +149,11 @@
             border: 2px dashed rgba(255,255,255,0.1);
         }
         .drop-zone.drag-over {
-            border-color: #e46b5a;
-            background: rgba(228, 107, 90, 0.15);
-            transform: scale(1.03);
-            box-shadow: inset 0 0 15px rgba(228, 107, 90, 0.2);
+            border-color: #e46b5a !important;
+            background: rgba(228, 107, 90, 0.15) !important;
+            transform: scale(1.03) !important;
+            box-shadow: inset 0 0 15px rgba(228, 107, 90, 0.4) !important;
+            opacity: 1 !important;
         }
 
         /* Thanh cuộn gọn gàng cho phần tiến độ */
@@ -232,13 +236,13 @@
                     </div>
 
                     <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
-                        <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high">
+                        <div class="drop-zone cursor-pointer bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high" onclick="togglePriorityFilter('high')">
                             <span>🔴 hai</span>
                         </div>
-                        <div class="drop-zone bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="medium">
+                        <div class="drop-zone cursor-pointer bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="medium" onclick="togglePriorityFilter('medium')">
                             <span>🟡 mít</span>
                         </div>
-                        <div class="drop-zone bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="low">
+                        <div class="drop-zone cursor-pointer bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="low" onclick="togglePriorityFilter('low')">
                             <span>🟢 low cortisol</span>
                         </div>
                     </div>
@@ -247,9 +251,7 @@
         </section>
 
         <section>
-            <!-- Khu vực chứa thanh tiến độ cho TỪNG CHỦ ĐỀ RIÊNG BIỆT (Được làm gọn) -->
             <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-5 rounded-3xl relative">
-                <!-- Thanh cuộn dọc + Grid layout giúp tiết kiệm cực nhiều diện tích -->
                 <div id="progressInner" class="max-h-[160px] overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pr-2">
                 </div>
             </div>
@@ -340,6 +342,7 @@
 
         let videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
         let currentFilter = 'All';
+        let currentPriorityFilter = 'All'; // Biến theo dõi trạng thái lọc của màu ưu tiên
         let editingId = null;
 
         const form = document.getElementById('videoForm');
@@ -354,6 +357,17 @@
         const tapeColors = { 'high': 'rgba(228, 107, 90, 0.75)', 'medium': 'rgba(234, 179, 8, 0.75)', 'low': 'rgba(141, 164, 126, 0.75)' };
 
         function saveToLocalStorage() { localStorage.setItem('indieVideos', JSON.stringify(videos)); }
+
+        // Tính năng Lọc Theo Màu Ưu Tiên
+        function togglePriorityFilter(priority) {
+            if (currentPriorityFilter === priority) {
+                currentPriorityFilter = 'All'; // Tắt bộ lọc nếu bấm lại lần 2
+            } else {
+                currentPriorityFilter = priority;
+            }
+            playSound('click');
+            renderUI();
+        }
 
         form.addEventListener('submit', function(e) {
             e.preventDefault();
@@ -413,7 +427,6 @@
             renderUI();
         }
 
-        // Đánh dấu hoàn thành tội phạm
         function toggleComplete(id) {
             const index = videos.findIndex(v => v.id === id);
             if (index !== -1) {
@@ -476,14 +489,41 @@
             });
         }
 
+        function renderPriorityFilters() {
+            document.querySelectorAll('.drop-zone').forEach(zone => {
+                const p = zone.getAttribute('data-priority');
+                if (currentPriorityFilter === 'All') {
+                    zone.style.boxShadow = 'none';
+                    zone.style.transform = 'scale(1)';
+                    zone.style.opacity = '1';
+                } else if (currentPriorityFilter === p) {
+                    if(p === 'high') zone.style.boxShadow = 'inset 0 0 15px rgba(228, 107, 90, 0.4), 0 0 15px rgba(228, 107, 90, 0.4)';
+                    if(p === 'medium') zone.style.boxShadow = 'inset 0 0 15px rgba(234, 179, 8, 0.4), 0 0 15px rgba(234, 179, 8, 0.4)';
+                    if(p === 'low') zone.style.boxShadow = 'inset 0 0 15px rgba(141, 164, 126, 0.4), 0 0 15px rgba(141, 164, 126, 0.4)';
+                    zone.style.transform = 'scale(1.05)';
+                    zone.style.opacity = '1';
+                } else {
+                    zone.style.boxShadow = 'none';
+                    zone.style.transform = 'scale(1)';
+                    zone.style.opacity = '0.3';
+                }
+            });
+        }
+
         function renderVideos() {
             grid.innerHTML = '';
             
             const progressInner = document.getElementById('progressInner');
-            progressInner.innerHTML = ''; // Xóa sạch dữ liệu progress trước đó
+            progressInner.innerHTML = ''; 
             
+            // Lọc theo Category
             let filteredVideos = currentFilter === 'All' 
                 ? [...videos] : videos.filter(v => v.category === currentFilter);
+
+            // Bổ sung Lọc theo Priority
+            if (currentPriorityFilter !== 'All') {
+                filteredVideos = filteredVideos.filter(v => v.priority === currentPriorityFilter);
+            }
 
             filteredVideos.sort((a, b) => {
                 if (priorityScore[b.priority] !== priorityScore[a.priority]) {
@@ -501,7 +541,6 @@
                 emptyState.classList.add('hidden');
                 progressContainer.classList.remove('hidden');
 
-                // Render Tiến Độ riêng rẽ cho từng CHỦ ĐỀ đang được hiển thị theo định dạng Gọn Gàng
                 const topicsToRender = currentFilter === 'All' 
                     ? Array.from(new Set(filteredVideos.map(v => v.category))) 
                     : [currentFilter];
@@ -536,7 +575,6 @@
                     const card = document.createElement('div');
                     const rotate = (Math.random() * 3 - 1.5).toFixed(1);
                     
-                    // Nếu đã completed thì thẻ mờ đi đôi chút để làm nổi bật những cái chưa xong
                     const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
                     card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
                     card.style.transform = `rotate(${rotate}deg)`;
@@ -610,6 +648,7 @@
 
         function renderUI() {
             renderFilters();
+            renderPriorityFilters(); // Khởi chạy giao diện nút Lọc Màu Ưu Tiên
             renderVideos();
         }
 
