@@ -65,6 +65,12 @@
             background: rgba(20, 20, 20, 0.9);
         }
 
+        /* Đồng bộ font chữ cho các Option bên trong Select */
+        select option {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+        }
+
         .typing-particle {
             position: absolute;
             pointer-events: none;
@@ -258,10 +264,12 @@
             <div id="videoGrid" class="masonry-grid pt-4 pb-16"></div>
             
             <div id="emptyState" class="hidden text-center py-24 glass-panel rounded-3xl mt-10">
-                </div>
+                <!-- Nội dung empty state sẽ được gen tự động qua JS -->
+            </div>
         </section>
     </div>
 
+    <!-- Thanh công cụ nổi cho Thao tác Hàng loạt -->
     <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center">
         <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base whitespace-nowrap"></span>
         <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm whitespace-nowrap"></button>
@@ -575,7 +583,8 @@
             cats.forEach(cat => {
                 const btn = document.createElement('button');
                 
-                let baseClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 flex items-center gap-1 ";
+                // Bổ sung class 'group' để xử lý hiển thị icon pin khi hover
+                let baseClasses = "group px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 flex items-center gap-1 ";
                 if (currentFilter === cat && !isTrashView) {
                     btn.className = baseClasses + "bg-[#8da47e] text-[#1a1a1a] shadow-[0_0_15px_#8da47e] transform scale-105";
                 } else {
@@ -586,8 +595,11 @@
                     btn.innerText = '⛓️🥀 TẤT CẢ';
                 } else {
                     const isPinned = pinnedTopics.includes(cat);
-                    const pinOpacity = isPinned ? 'opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'opacity-30 hover:opacity-100 grayscale';
-                    btn.innerHTML = `<span class="whitespace-nowrap">▤ ${cat}</span> <span class="pin-icon ml-1 ${pinOpacity} transition-all duration-300 cursor-pointer text-base" title="${isPinned ? 'Bỏ ghim' : 'Ghim ưu tiên'}">📌</span>`;
+                    // Chỉ hiện pin nếu đã ghim, hoặc khi hover thì mới xuất hiện
+                    const pinHtml = isPinned 
+                        ? `<span class="pin-icon ml-1 opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] transition-all duration-300 cursor-pointer text-base" title="Bỏ ghim">📌</span>`
+                        : `<span class="pin-icon ml-1 hidden group-hover:inline-block opacity-70 hover:opacity-100 grayscale hover:grayscale-0 transition-all duration-300 cursor-pointer text-base" title="Ghim ưu tiên">📌</span>`;
+                    btn.innerHTML = `<span class="whitespace-nowrap">▤ ${cat}</span>${pinHtml}`;
                 }
 
                 btn.onclick = (e) => {
