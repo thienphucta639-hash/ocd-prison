@@ -124,14 +124,13 @@
             100% { transform: translateY(-40px) scale(0); opacity: 0; }
         }
 
-        /* ================= BỐ CỤC BẤT ĐỐI XỨNG (MASONRY LAYOUT) ================= */
+        /* ================= BỐ CỤC KHOA HỌC (GRID CHUYÊN GIA) ================= */
         .masonry-grid {
-            column-count: 1;
-            column-gap: 2rem;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 2rem;
+            align-items: start;
         }
-        @media (min-width: 768px) { .masonry-grid { column-count: 2; } }
-        @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
-        @media (min-width: 1536px) { .masonry-grid { column-count: 4; } }
         
         .paper-card {
             background: #fdfbf7;
@@ -139,7 +138,6 @@
             background-size: 20px 20px;
             position: relative;
             break-inside: avoid;
-            margin-bottom: 2rem;
             color: #3b312a;
             box-shadow: 4px 8px 20px rgba(0,0,0,0.4);
             border-radius: 6px;
@@ -774,10 +772,22 @@
                 filteredVideos = filteredVideos.filter(v => v.priority === currentPriorityFilter);
             }
 
+            // THUẬT TOÁN SẮP XẾP CHUYÊN GIA 4 LỚP KHOA HỌC
             filteredVideos.sort((a, b) => {
+                // Lớp 1: Đã hoàn thành thì cho chìm xuống cuối
+                if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                
+                // Lớp 2: Ưu tiên (Đỏ > Vàng > Xanh)
                 if (priorityScore[b.priority] !== priorityScore[a.priority]) {
                     return priorityScore[b.priority] - priorityScore[a.priority];
                 }
+                
+                // Lớp 3: Cùng ưu tiên thì xếp theo Chủ Đề (Category) cho gọn gàng
+                if (a.category !== b.category) {
+                    return a.category.localeCompare(b.category);
+                }
+                
+                // Lớp 4: Cùng chủ đề thì mới nhất xếp trước
                 return b.id - a.id;
             });
 
@@ -857,7 +867,7 @@
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
-                    // === VẬT LÝ SNAP-TO-CURSOR, XÔ ĐẨY ĐÁM ĐÔNG & HỒI SINH TĨNH ===
+                    // === VẬT LÝ TỌA ĐỘ TUYỆT ĐỐI (PAGE X/Y) - VƯỢT GIỚI HẠN SCROLL ===
                     let isDragging = false;
                     let startX = 0, startY = 0;
                     let centerX = 0, centerY = 0;
@@ -877,23 +887,25 @@
                         document.body.classList.add('select-none');
 
                         isDragging = true;
-                        const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
-                        const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                         
-                        startX = clientX;
-                        startY = clientY;
+                        // SỬ DỤNG TỌA ĐỘ TUYỆT ĐỐI CỦA DOCUMENT ĐỂ KHÔNG BỊ GIỚI HẠN
+                        const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+                        const pageY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
+                        
+                        startX = pageX;
+                        startY = pageY;
 
+                        // Xác định tâm thẻ dựa trên tọa độ tuyệt đối
                         const rect = card.getBoundingClientRect();
-                        centerX = rect.left + rect.width / 2;
-                        centerY = rect.top + rect.height / 2;
+                        centerX = rect.left + window.scrollX + rect.width / 2;
+                        centerY = rect.top + window.scrollY + rect.height / 2;
                         
-                        // SNAP-TO-CENTER: Mục tiêu ngay khi click là khoảng cách từ chuột tới tâm thẻ
                         const clickOffsetX = centerX - startX;
                         const clickOffsetY = centerY - startY;
                         targetX = clickOffsetX;
                         targetY = clickOffsetY;
 
-                        prevMouseAngle = Math.atan2(clientY - centerY, clientX - centerX);
+                        prevMouseAngle = Math.atan2(pageY - centerY, pageX - centerX);
 
                         card.style.willChange = 'transform';
                         card.style.transition = 'none';
@@ -901,13 +913,12 @@
                         card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                         card.classList.remove('hover-spring'); 
 
-                        // Chuẩn bị dữ liệu các thẻ xung quanh để đẩy
                         otherCards = [];
                         document.querySelectorAll('.paper-card').forEach(other => {
                             if (other === card) return;
                             const oRect = other.getBoundingClientRect();
-                            let cx = oRect.left + oRect.width / 2;
-                            let cy = oRect.top + oRect.height / 2;
+                            let cx = oRect.left + window.scrollX + oRect.width / 2;
+                            let cy = oRect.top + window.scrollY + oRect.height / 2;
                             
                             let curOx = parseFloat(other.dataset.offsetX || '0');
                             let curOy = parseFloat(other.dataset.offsetY || '0');
@@ -930,7 +941,6 @@
                         const updateLoop = () => {
                             if (!isDragging) return;
                             
-                            // LERP mượt bám sát chuột (đi theo con trỏ)
                             currentX += (targetX - currentX) * 0.5;
                             currentY += (targetY - currentY) * 0.5;
                             
@@ -953,7 +963,6 @@
 
                             card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
                             
-                            // TƯƠNG TÁC XÔ ĐẨY: Húc văng đám đông và chúng "nằm im"
                             otherCards.forEach(other => {
                                 let tOx = other.targetOx;
                                 let tOy = other.targetOy;
@@ -966,12 +975,10 @@
                                 if (dist < repelRadius && dist > 1) {
                                     const overlap = repelRadius - dist;
                                     const force = overlap * 0.15; 
-                                    // Cộng dồn độ dạt ra, thẻ sẽ đứng im ở chỗ mới này
                                     tOx += (dx / dist) * force;
                                     tOy += (dy / dist) * force;
                                 }
 
-                                // Mượt hóa chuyển động dạt ra
                                 other.curOx += (tOx - other.curOx) * 0.2;
                                 other.curOy += (tOy - other.curOy) * 0.2;
                                 
@@ -991,12 +998,16 @@
                             if (!isDragging) return;
                             ev.preventDefault();
 
+                            // SỬ DỤNG TỌA ĐỘ PAGE ĐỂ KHÔNG BỊ LỖI KHI KÉO XUỐNG
+                            const pX = ev.type.includes('mouse') ? ev.pageX : ev.touches[0].pageX;
+                            const pY = ev.type.includes('mouse') ? ev.pageY : ev.touches[0].pageY;
+                            
+                            targetX = (pX - startX) + clickOffsetX;
+                            targetY = (pY - startY) + clickOffsetY;
+
+                            // DROPZONE DÙNG VIEWPORT COORDS (clientX/clientY)
                             const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
                             const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
-
-                            // Cập nhật target có bù khoảng cách để hút vào tâm con chuột
-                            targetX = (cX - startX) + clickOffsetX;
-                            targetY = (cY - startY) + clickOffsetY;
 
                             document.querySelectorAll('.drop-zone').forEach(zone => {
                                 const zRect = zone.getBoundingClientRect();
@@ -1022,7 +1033,6 @@
                             card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                             card.classList.add('hover-spring');
 
-                            // XỬ LÝ QUAY VỀ CHỖ CŨ CHO ĐÁM ĐÔNG SAU ĐÚNG 3 GIÂY NẰM IM
                             otherCards.forEach(other => {
                                 if (other.el.resetTimeout) clearTimeout(other.el.resetTimeout);
                                 
@@ -1039,8 +1049,8 @@
                                 }, 3000); 
                             });
 
-                            const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : startX);
-                            const cY = ev.type.includes('mouse') ? ev.clientY : (ev.changedTouches ? ev.changedTouches[0].clientY : startY);
+                            const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : (startX - window.scrollX));
+                            const cY = ev.type.includes('mouse') ? ev.clientY : (ev.changedTouches ? ev.changedTouches[0].clientY : (startY - window.scrollY));
 
                             let droppedOnZone = false;
                             document.querySelectorAll('.drop-zone').forEach(zone => {
@@ -1063,10 +1073,7 @@
                                 return;
                             }
 
-                            // Tính toán khoảng cách vứt chính xác (không tính bù tâm)
-                            const pureDragX = cX - startX;
-                            const pureDragY = cY - startY;
-                            const distance = Math.sqrt(pureDragX*pureDragX + pureDragY*pureDragY);
+                            const distance = Math.sqrt(targetX * targetX + targetY * targetY);
                             
                             if (distance > 100) { 
                                 card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
@@ -1095,7 +1102,6 @@
                                 return;
                             }
 
-                            // Nhả tay nhưng chưa vứt rác -> về chỗ cũ
                             card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                             card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
                             
@@ -1107,7 +1113,7 @@
                                 }
                             }, 600);
 
-                            currentX = 0; currentY = 0;
+                            targetX = 0; targetY = 0;
                         };
 
                         document.addEventListener('mousemove', moveDrag, {passive: false});
