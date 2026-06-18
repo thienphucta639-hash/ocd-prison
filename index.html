@@ -22,6 +22,48 @@
             color: #e0d8c0;
         }
 
+        /* TẮT CON TRỎ MẶC ĐỊNH & STYLE CUSTOM CURSOR */
+        @media (pointer: fine) {
+            body, button, a, div, span, p, h1, h2, h3, select { cursor: none !important; }
+            input, textarea { cursor: text !important; }
+        }
+        #magic-cursor {
+            position: fixed;
+            top: 0; left: 0;
+            width: 8px; height: 8px;
+            background-color: #e46b5a;
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999999;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 10px #e46b5a;
+            transition: width 0.2s, height 0.2s, background-color 0.2s;
+        }
+        #magic-cursor-trail {
+            position: fixed;
+            top: 0; left: 0;
+            width: 34px; height: 34px;
+            border: 2px solid rgba(228, 107, 90, 0.5);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 9999998;
+            transform: translate(-50%, -50%);
+            transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s;
+        }
+        body.is-dragging-global #magic-cursor {
+            width: 14px; height: 14px;
+            background-color: #eab308;
+            box-shadow: 0 0 15px #eab308;
+        }
+        body.is-dragging-global #magic-cursor-trail {
+            width: 50px; height: 50px;
+            border-color: rgba(234, 179, 8, 0.8);
+            background-color: rgba(234, 179, 8, 0.15);
+        }
+        @media (pointer: coarse) {
+            #magic-cursor, #magic-cursor-trail { display: none !important; }
+        }
+
         .fairy-lights {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 60px;
@@ -101,11 +143,9 @@
             color: #3b312a;
             box-shadow: 4px 8px 20px rgba(0,0,0,0.4);
             border-radius: 6px;
-            cursor: grab;
             word-wrap: break-word;
             transition: all 0.3s ease;
         }
-        .paper-card:active { cursor: grabbing; }
 
         .priority-high { border-top: 8px solid #e46b5a; }
         .priority-medium { border-top: 8px solid #eab308; }
@@ -174,11 +214,15 @@
             background: #8da47e;
         }
     </style></head><body class="p-4 md:p-12 relative min-h-screen">
+    
+    <div id="magic-cursor"></div>
+    <div id="magic-cursor-trail"></div>
+
     <div class="fairy-lights"></div>
 
     <div class="w-full mx-auto relative z-10">
         <header class="mb-10 md:mb-14 text-center pt-10">
-            <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block cursor-default drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
+            <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
                 Bù lu Bù loa
             </h1>
             <p class="text-[#a39785] font-medium text-lg tracking-wide">Tôi bị Obsessive Compulsive Disorder</p>
@@ -206,7 +250,7 @@
                         class="cute-input flex-1 md:w-1/3 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
                     
                     <div class="relative w-full md:w-1/4" id="customSelectContainer">
-                        <div id="customSelectBtn" class="cute-input w-full px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold cursor-pointer flex justify-between items-center h-full">
+                        <div id="customSelectBtn" class="cute-input w-full px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold flex justify-between items-center h-full">
                             <span id="customSelectValue" class="text-[#eab308] truncate">🟡 Dé lồ ( No mồ )</span>
                             <svg class="w-5 h-5 ml-2 text-gray-400 transition-transform duration-300 flex-shrink-0" id="customSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
@@ -214,9 +258,9 @@
                         </div>
                         
                         <div id="customSelectOptions" class="absolute left-0 w-full mt-2 bg-[#1f1f1f] border border-white/10 rounded-xl md:rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] overflow-hidden z-[100] transition-all duration-300 origin-top transform scale-y-0 opacity-0 pointer-events-none backdrop-blur-xl">
-                            <div class="p-3 md:p-4 hover:bg-white/10 cursor-pointer text-[#e46b5a] font-semibold transition-colors custom-option" data-value="high">🔴 Rét ( Quách liền )</div>
-                            <div class="p-3 md:p-4 hover:bg-white/10 cursor-pointer text-[#eab308] font-semibold transition-colors custom-option" data-value="medium">🟡 Dé lồ ( No mồ )</div>
-                            <div class="p-3 md:p-4 hover:bg-white/10 cursor-pointer text-[#8da47e] font-semibold transition-colors custom-option" data-value="low">🟢 Gờ rin ( Cửa sau )</div>
+                            <div class="p-3 md:p-4 hover:bg-white/10 text-[#e46b5a] font-semibold transition-colors custom-option" data-value="high">🔴 Rét ( Quách liền )</div>
+                            <div class="p-3 md:p-4 hover:bg-white/10 text-[#eab308] font-semibold transition-colors custom-option" data-value="medium">🟡 Dé lồ ( No mồ )</div>
+                            <div class="p-3 md:p-4 hover:bg-white/10 text-[#8da47e] font-semibold transition-colors custom-option" data-value="low">🟢 Gờ rin ( Cửa sau )</div>
                         </div>
                         <input type="hidden" id="priorityInput" value="medium">
                     </div>
@@ -246,13 +290,13 @@
                     </div>
 
                     <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
-                        <div class="drop-zone cursor-pointer bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high" onclick="togglePriorityFilter('high')">
+                        <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high" onclick="togglePriorityFilter('high')">
                             <span>🔴 hai</span>
                         </div>
-                        <div class="drop-zone cursor-pointer bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="medium" onclick="togglePriorityFilter('medium')">
+                        <div class="drop-zone bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="medium" onclick="togglePriorityFilter('medium')">
                             <span>🟡 mít</span>
                         </div>
-                        <div class="drop-zone cursor-pointer bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="low" onclick="togglePriorityFilter('low')">
+                        <div class="drop-zone bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="low" onclick="togglePriorityFilter('low')">
                             <span>🟢 low cortisol</span>
                         </div>
                     </div>
@@ -281,6 +325,29 @@
     </div>
 
     <script>
+        // === HỆ THỐNG CUSTOM CURSOR LOGIC ===
+        const magicCursor = document.getElementById('magic-cursor');
+        const magicTrail = document.getElementById('magic-cursor-trail');
+        let mX = window.innerWidth / 2;
+        let mY = window.innerHeight / 2;
+        let tX = mX; let tY = mY;
+
+        window.addEventListener('mousemove', (e) => {
+            mX = e.clientX; mY = e.clientY;
+            magicCursor.style.transform = `translate3d(${mX}px, ${mY}px, 0) translate(-50%, -50%)`;
+        });
+        window.addEventListener('mousedown', () => document.body.classList.add('is-dragging-global'));
+        window.addEventListener('mouseup', () => document.body.classList.remove('is-dragging-global'));
+
+        function animateCursorTrail() {
+            tX += (mX - tX) * 0.15;
+            tY += (mY - tY) * 0.15;
+            magicTrail.style.transform = `translate3d(${tX}px, ${tY}px, 0) translate(-50%, -50%)`;
+            requestAnimationFrame(animateCursorTrail);
+        }
+        animateCursorTrail();
+        // ===================================
+
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         
         function playSound(type) {
@@ -790,7 +857,7 @@
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
-                    // === VẬT LÝ KÉO KHẮP NƠI, QUAY NHƯ CÁNH QUẠT VÀ HẤT VĂNG ĐÁM ĐÔNG ===
+                    // === VẬT LÝ SNAP-TO-CURSOR, XÔ ĐẨY ĐÁM ĐÔNG & HỒI SINH TĨNH ===
                     let isDragging = false;
                     let startX = 0, startY = 0;
                     let centerX = 0, centerY = 0;
@@ -815,13 +882,17 @@
                         
                         startX = clientX;
                         startY = clientY;
-                        targetX = 0; targetY = 0;
-                        currentX = 0; currentY = 0;
 
                         const rect = card.getBoundingClientRect();
                         centerX = rect.left + rect.width / 2;
                         centerY = rect.top + rect.height / 2;
                         
+                        // SNAP-TO-CENTER: Mục tiêu ngay khi click là khoảng cách từ chuột tới tâm thẻ
+                        const clickOffsetX = centerX - startX;
+                        const clickOffsetY = centerY - startY;
+                        targetX = clickOffsetX;
+                        targetY = clickOffsetY;
+
                         prevMouseAngle = Math.atan2(clientY - centerY, clientX - centerX);
 
                         card.style.willChange = 'transform';
@@ -830,7 +901,7 @@
                         card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                         card.classList.remove('hover-spring'); 
 
-                        // Thu thập tọa độ và offset hiện tại của các thẻ khác để chuẩn bị đẩy
+                        // Chuẩn bị dữ liệu các thẻ xung quanh để đẩy
                         otherCards = [];
                         document.querySelectorAll('.paper-card').forEach(other => {
                             if (other === card) return;
@@ -845,27 +916,29 @@
                                 el: other,
                                 baseCX: cx - curOx,
                                 baseCY: cy - curOy,
-                                origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0')
+                                origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0'),
+                                targetOx: curOx,
+                                targetOy: curOy,
+                                curOx: curOx,
+                                curOy: curOy
                             });
                             
                             other.style.willChange = 'transform';
                             other.style.transition = 'none'; 
                         });
 
-                        // Vòng lặp đồ họa LERP nội suy mượt mà
                         const updateLoop = () => {
                             if (!isDragging) return;
                             
-                            // LERP cho vị trí (mượt như bơ)
-                            currentX += (targetX - currentX) * 0.25;
-                            currentY += (targetY - currentY) * 0.25;
+                            // LERP mượt bám sát chuột (đi theo con trỏ)
+                            currentX += (targetX - currentX) * 0.5;
+                            currentY += (targetY - currentY) * 0.5;
                             
                             const dragCX = centerX + currentX;
                             const dragCY = centerY + currentY;
 
-                            // Toán học Cánh Quạt: Tính góc thay đổi dựa trên chuyển động tròn của chuột quanh tâm thẻ
-                            const currentMouseX = startX + targetX;
-                            const currentMouseY = startY + targetY;
+                            const currentMouseX = startX + targetX - clickOffsetX;
+                            const currentMouseY = startY + targetY - clickOffsetY;
                             const mouseDist = Math.sqrt((currentMouseX - dragCX)**2 + (currentMouseY - dragCY)**2);
                             
                             if (mouseDist > 5) {
@@ -874,37 +947,40 @@
                                 if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
                                 if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
                                 
-                                // Áp dụng độ xoay
                                 currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.2;
                                 prevMouseAngle = mouseAngle;
                             }
 
-                            // Render thẻ đang được kéo
                             card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
                             
-                            // TRƯỜNG LỰC TỪ TRƯỜNG (Hất văng các thẻ khác ra và nằm im đó)
+                            // TƯƠNG TÁC XÔ ĐẨY: Húc văng đám đông và chúng "nằm im"
                             otherCards.forEach(other => {
-                                let curOx = parseFloat(other.el.dataset.offsetX || '0');
-                                let curOy = parseFloat(other.el.dataset.offsetY || '0');
+                                let tOx = other.targetOx;
+                                let tOy = other.targetOy;
                                 
-                                const dx = (other.baseCX + curOx) - dragCX;
-                                const dy = (other.baseCY + curOy) - dragCY;
+                                const dx = (other.baseCX + tOx) - dragCX;
+                                const dy = (other.baseCY + tOy) - dragCY;
                                 const dist = Math.sqrt(dx*dx + dy*dy);
-                                const repelRadius = 300; // Phạm vi đẩy như đẩy đám đông
+                                const repelRadius = 320; 
 
-                                if (dist < repelRadius && dist > 0) {
-                                    const pushForce = (repelRadius - dist) * 0.15; // Lực hất
-                                    const angle = Math.atan2(dy, dx);
-                                    curOx += Math.cos(angle) * pushForce;
-                                    curOy += Math.sin(angle) * pushForce;
-                                    
-                                    // Lưu lại vị trí đã bị hất
-                                    other.el.dataset.offsetX = curOx;
-                                    other.el.dataset.offsetY = curOy;
+                                if (dist < repelRadius && dist > 1) {
+                                    const overlap = repelRadius - dist;
+                                    const force = overlap * 0.15; 
+                                    // Cộng dồn độ dạt ra, thẻ sẽ đứng im ở chỗ mới này
+                                    tOx += (dx / dist) * force;
+                                    tOy += (dy / dist) * force;
                                 }
 
-                                // Apply vị trí hất văng (thẻ sẽ nằm im ở đó vì curOx, curOy được cộng dồn)
-                                other.el.style.transform = `translate3d(${curOx}px, ${curOy}px, 0) rotate(${other.origRotate}deg)`;
+                                // Mượt hóa chuyển động dạt ra
+                                other.curOx += (tOx - other.curOx) * 0.2;
+                                other.curOy += (tOy - other.curOy) * 0.2;
+                                
+                                other.targetOx = tOx;
+                                other.targetOy = tOy;
+
+                                other.el.dataset.offsetX = other.curOx;
+                                other.el.dataset.offsetY = other.curOy;
+                                other.el.style.transform = `translate3d(${other.curOx}px, ${other.curOy}px, 0) rotate(${other.origRotate}deg)`;
                             });
 
                             rAF_ID = requestAnimationFrame(updateLoop);
@@ -918,9 +994,9 @@
                             const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
                             const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
 
-                            // Cập nhật mục tiêu cho LERP
-                            targetX = cX - startX;
-                            targetY = cY - startY;
+                            // Cập nhật target có bù khoảng cách để hút vào tâm con chuột
+                            targetX = (cX - startX) + clickOffsetX;
+                            targetY = (cY - startY) + clickOffsetY;
 
                             document.querySelectorAll('.drop-zone').forEach(zone => {
                                 const zRect = zone.getBoundingClientRect();
@@ -946,7 +1022,7 @@
                             card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                             card.classList.add('hover-spring');
 
-                            // XỬ LÝ HỒI PHỤC CÁC THẺ BỊ ĐẨY (NẰM IM 3S RỒI QUAY VỀ)
+                            // XỬ LÝ QUAY VỀ CHỖ CŨ CHO ĐÁM ĐÔNG SAU ĐÚNG 3 GIÂY NẰM IM
                             otherCards.forEach(other => {
                                 if (other.el.resetTimeout) clearTimeout(other.el.resetTimeout);
                                 
@@ -960,7 +1036,7 @@
                                         other.el.style.transition = '';
                                         other.el.style.willChange = 'auto';
                                     }, 800);
-                                }, 3000); // <-- 3 Giây chính xác như yêu cầu
+                                }, 3000); 
                             });
 
                             const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : startX);
@@ -987,8 +1063,11 @@
                                 return;
                             }
 
-                            // Quăng rác dựa trên khoảng cách đích
-                            const distance = Math.sqrt(targetX * targetX + targetY * targetY);
+                            // Tính toán khoảng cách vứt chính xác (không tính bù tâm)
+                            const pureDragX = cX - startX;
+                            const pureDragY = cY - startY;
+                            const distance = Math.sqrt(pureDragX*pureDragX + pureDragY*pureDragY);
+                            
                             if (distance > 100) { 
                                 card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
                                 const finalRotateDeg = currentRotateDeg + 360;
@@ -1012,11 +1091,11 @@
                                     }, 50);
                                 }, 3000); 
                                 
-                                targetX = 0; targetY = 0;
+                                currentX = 0; currentY = 0;
                                 return;
                             }
 
-                            // Về chỗ cũ
+                            // Nhả tay nhưng chưa vứt rác -> về chỗ cũ
                             card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                             card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
                             
@@ -1028,7 +1107,7 @@
                                 }
                             }, 600);
 
-                            targetX = 0; targetY = 0;
+                            currentX = 0; currentY = 0;
                         };
 
                         document.addEventListener('mousemove', moveDrag, {passive: false});
