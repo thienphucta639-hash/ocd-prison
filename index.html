@@ -787,23 +787,22 @@
                     const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
                     card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
                     
-                    // Gắn góc xoay gốc vào dataset để dễ tính toán vật lý sau này
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
-                    // === VẬT LÝ KÉO XOAY SIÊU MƯỢT VÀ TƯƠNG TÁC ĐẨY CÁC THẺ KHÁC ===
+                    // === VẬT LÝ KÉO KHẮP NƠI, QUAY NHƯ CÁNH QUẠT VÀ HẤT VĂNG ĐÁM ĐÔNG ===
                     let isDragging = false;
                     let startX = 0, startY = 0;
                     let centerX = 0, centerY = 0;
-                    let startAngle = 0;
+                    let targetX = 0, targetY = 0;
                     let currentX = 0, currentY = 0;
                     let currentRotateDeg = parseFloat(rotate);
+                    let prevMouseAngle = 0;
                     let rAF_ID = null;
                     let otherCards = [];
 
                     const startCustomDrag = (e) => {
                         if (e.type === 'mousedown' && e.button !== 0) return;
-                        
                         if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
                         if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
 
@@ -816,64 +815,96 @@
                         
                         startX = clientX;
                         startY = clientY;
+                        targetX = 0; targetY = 0;
+                        currentX = 0; currentY = 0;
 
                         const rect = card.getBoundingClientRect();
                         centerX = rect.left + rect.width / 2;
                         centerY = rect.top + rect.height / 2;
-                        startAngle = Math.atan2(clientY - centerY, clientX - centerX);
+                        
+                        prevMouseAngle = Math.atan2(clientY - centerY, clientX - centerX);
 
-                        // Bật Hardware Acceleration để mượt 60fps
                         card.style.willChange = 'transform';
                         card.style.transition = 'none';
                         card.style.zIndex = '999';
                         card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                         card.classList.remove('hover-spring'); 
 
-                        // Thu thập tọa độ tâm và góc của tất cả các thẻ khác để chuẩn bị đẩy
+                        // Thu thập tọa độ và offset hiện tại của các thẻ khác để chuẩn bị đẩy
                         otherCards = [];
                         document.querySelectorAll('.paper-card').forEach(other => {
                             if (other === card) return;
                             const oRect = other.getBoundingClientRect();
+                            let cx = oRect.left + oRect.width / 2;
+                            let cy = oRect.top + oRect.height / 2;
+                            
+                            let curOx = parseFloat(other.dataset.offsetX || '0');
+                            let curOy = parseFloat(other.dataset.offsetY || '0');
+                            
                             otherCards.push({
                                 el: other,
-                                cx: oRect.left + oRect.width / 2,
-                                cy: oRect.top + oRect.height / 2,
+                                baseCX: cx - curOx,
+                                baseCY: cy - curOy,
                                 origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0')
                             });
-                            // Thêm transition mượt mà cho các thẻ bị đẩy
+                            
                             other.style.willChange = 'transform';
-                            other.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                            other.style.transition = 'none'; 
                         });
 
-                        // Vòng lặp đồ họa mượt mà
+                        // Vòng lặp đồ họa LERP nội suy mượt mà
                         const updateLoop = () => {
                             if (!isDragging) return;
                             
-                            // Render thẻ đang cầm
-                            card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
+                            // LERP cho vị trí (mượt như bơ)
+                            currentX += (targetX - currentX) * 0.25;
+                            currentY += (targetY - currentY) * 0.25;
                             
-                            // Tính toán trường lực đẩy (Repulsion Force Field)
                             const dragCX = centerX + currentX;
                             const dragCY = centerY + currentY;
 
-                            otherCards.forEach(other => {
-                                const dx = other.cx - dragCX;
-                                const dy = other.cy - dragCY;
-                                const dist = Math.sqrt(dx*dx + dy*dy);
+                            // Toán học Cánh Quạt: Tính góc thay đổi dựa trên chuyển động tròn của chuột quanh tâm thẻ
+                            const currentMouseX = startX + targetX;
+                            const currentMouseY = startY + targetY;
+                            const mouseDist = Math.sqrt((currentMouseX - dragCX)**2 + (currentMouseY - dragCY)**2);
+                            
+                            if (mouseDist > 5) {
+                                const mouseAngle = Math.atan2(currentMouseY - dragCY, currentMouseX - dragCX);
+                                let deltaAngle = mouseAngle - prevMouseAngle;
+                                if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
+                                if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
                                 
-                                const repelRadius = 350; // Bán kính trường lực (350px)
+                                // Áp dụng độ xoay
+                                currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.2;
+                                prevMouseAngle = mouseAngle;
+                            }
+
+                            // Render thẻ đang được kéo
+                            card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
+                            
+                            // TRƯỜNG LỰC TỪ TRƯỜNG (Hất văng các thẻ khác ra và nằm im đó)
+                            otherCards.forEach(other => {
+                                let curOx = parseFloat(other.el.dataset.offsetX || '0');
+                                let curOy = parseFloat(other.el.dataset.offsetY || '0');
+                                
+                                const dx = (other.baseCX + curOx) - dragCX;
+                                const dy = (other.baseCY + curOy) - dragCY;
+                                const dist = Math.sqrt(dx*dx + dy*dy);
+                                const repelRadius = 300; // Phạm vi đẩy như đẩy đám đông
+
                                 if (dist < repelRadius && dist > 0) {
-                                    // Càng gần đẩy càng mạnh
-                                    const force = (repelRadius - dist) * 0.4; 
+                                    const pushForce = (repelRadius - dist) * 0.15; // Lực hất
                                     const angle = Math.atan2(dy, dx);
-                                    const pushX = Math.cos(angle) * force;
-                                    const pushY = Math.sin(angle) * force;
+                                    curOx += Math.cos(angle) * pushForce;
+                                    curOy += Math.sin(angle) * pushForce;
                                     
-                                    other.el.style.transform = `translate3d(${pushX}px, ${pushY}px, 0) rotate(${other.origRotate}deg)`;
-                                } else {
-                                    // Về lại chỗ cũ nếu đi xa
-                                    other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
+                                    // Lưu lại vị trí đã bị hất
+                                    other.el.dataset.offsetX = curOx;
+                                    other.el.dataset.offsetY = curOy;
                                 }
+
+                                // Apply vị trí hất văng (thẻ sẽ nằm im ở đó vì curOx, curOy được cộng dồn)
+                                other.el.style.transform = `translate3d(${curOx}px, ${curOy}px, 0) rotate(${other.origRotate}deg)`;
                             });
 
                             rAF_ID = requestAnimationFrame(updateLoop);
@@ -887,15 +918,10 @@
                             const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
                             const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
 
-                            // Chỉ cập nhật biến để requestAnimationFrame làm việc
-                            currentX = cX - startX;
-                            currentY = cY - startY;
+                            // Cập nhật mục tiêu cho LERP
+                            targetX = cX - startX;
+                            targetY = cY - startY;
 
-                            const currentMouseAngle = Math.atan2(cY - centerY, cX - centerX);
-                            const angleDiff = currentMouseAngle - startAngle;
-                            currentRotateDeg = parseFloat(rotate) + (angleDiff * 180 / Math.PI);
-
-                            // Xử lý drop zones
                             document.querySelectorAll('.drop-zone').forEach(zone => {
                                 const zRect = zone.getBoundingClientRect();
                                 if (cX >= zRect.left && cX <= zRect.right && cY >= zRect.top && cY <= zRect.bottom) {
@@ -920,15 +946,21 @@
                             card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                             card.classList.add('hover-spring');
 
-                            // Hồi phục lại các thẻ bị đẩy
+                            // XỬ LÝ HỒI PHỤC CÁC THẺ BỊ ĐẨY (NẰM IM 3S RỒI QUAY VỀ)
                             otherCards.forEach(other => {
-                                other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
-                                setTimeout(() => {
-                                    if (!isDragging) {
+                                if (other.el.resetTimeout) clearTimeout(other.el.resetTimeout);
+                                
+                                other.el.resetTimeout = setTimeout(() => {
+                                    other.el.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                                    other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
+                                    other.el.dataset.offsetX = 0;
+                                    other.el.dataset.offsetY = 0;
+                                    
+                                    setTimeout(() => {
                                         other.el.style.transition = '';
                                         other.el.style.willChange = 'auto';
-                                    }
-                                }, 400);
+                                    }, 800);
+                                }, 3000); // <-- 3 Giây chính xác như yêu cầu
                             });
 
                             const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : startX);
@@ -955,13 +987,13 @@
                                 return;
                             }
 
-                            // Quăng rác
-                            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+                            // Quăng rác dựa trên khoảng cách đích
+                            const distance = Math.sqrt(targetX * targetX + targetY * targetY);
                             if (distance > 100) { 
                                 card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
                                 const finalRotateDeg = currentRotateDeg + 360;
                                 
-                                card.style.transform = `translate3d(${currentX * 5}px, ${currentY * 5}px, 0) rotate(${finalRotateDeg}deg) scale(0.2)`;
+                                card.style.transform = `translate3d(${targetX * 5}px, ${targetY * 5}px, 0) rotate(${finalRotateDeg}deg) scale(0.2)`;
                                 card.style.opacity = '0';
                                 card.style.pointerEvents = 'none'; 
                                 playSound('drop');
@@ -980,11 +1012,11 @@
                                     }, 50);
                                 }, 3000); 
                                 
-                                currentX = 0; currentY = 0;
+                                targetX = 0; targetY = 0;
                                 return;
                             }
 
-                            // Về chỗ cũ mượt mà bằng translate3d
+                            // Về chỗ cũ
                             card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                             card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
                             
@@ -996,7 +1028,7 @@
                                 }
                             }, 600);
 
-                            currentX = 0; currentY = 0;
+                            targetX = 0; targetY = 0;
                         };
 
                         document.addEventListener('mousemove', moveDrag, {passive: false});
