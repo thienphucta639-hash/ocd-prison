@@ -65,6 +65,11 @@
             background: rgba(20, 20, 20, 0.9);
         }
 
+        select option {
+            font-family: 'Quicksand', sans-serif;
+            font-weight: 600;
+        }
+
         .typing-particle {
             position: absolute;
             pointer-events: none;
@@ -356,7 +361,6 @@
             if(['BUTTON', 'A'].includes(e.target.tagName)) playSound('click');
         });
 
-        // Xử lý Custom Select (Dropdown tùy chỉnh mượt mà)
         const selectBtn = document.getElementById('customSelectBtn');
         const selectOptions = document.getElementById('customSelectOptions');
         const selectValue = document.getElementById('customSelectValue');
@@ -536,7 +540,6 @@
             saveToLocalStorage();
             playSound('success');
             
-            // Đưa UI Select về mặc định
             form.reset();
             document.getElementById('priorityInput').value = 'medium';
             const defaultOption = document.querySelector(`.custom-option[data-value="medium"]`);
@@ -557,7 +560,6 @@
             document.getElementById('priorityInput').value = video.priority;
             document.getElementById('noteInput').value = video.note === "trống thía..." ? "" : video.note;
             
-            // Cập nhật UI của custom select
             const activeOption = document.querySelector(`.custom-option[data-value="${video.priority}"]`);
             if(activeOption) {
                 const colorClass = Array.from(activeOption.classList).find(c => c.startsWith('text-['));
@@ -645,7 +647,6 @@
             cats.forEach(cat => {
                 const btn = document.createElement('button');
                 
-                // Hiệu ứng mượt mà khi hover và ẩn/hiện pin
                 let baseClasses = "group px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 flex items-center gap-1 overflow-hidden ";
                 if (currentFilter === cat && !isTrashView) {
                     btn.className = baseClasses + "bg-[#8da47e] text-[#1a1a1a] shadow-[0_0_15px_#8da47e] transform scale-105";
@@ -657,7 +658,6 @@
                     btn.innerText = '⛓️🥀 TẤT CẢ';
                 } else {
                     const isPinned = pinnedTopics.includes(cat);
-                    // Animation "Trượt ra mượt mà" cho cái ghim
                     const pinHtml = isPinned 
                         ? `<span class="pin-icon ml-1 opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] transition-all duration-500 ease-out cursor-pointer text-base inline-block" title="Bỏ ghim">📌</span>`
                         : `<span class="pin-icon overflow-hidden max-w-0 opacity-0 group-hover:max-w-[24px] group-hover:opacity-70 group-hover:ml-1 hover:!opacity-100 grayscale hover:grayscale-0 transition-all duration-500 ease-out cursor-pointer text-base inline-flex items-center" title="Ghim ưu tiên">📌</span>`;
@@ -820,7 +820,68 @@
                     card.style.transform = `rotate(${rotate}deg)`;
                     
                     card.setAttribute('draggable', 'true');
+
+                    // === TÍNH NĂNG NHẤN GIỮ ĐỂ XOAY ===
+                    let currentAngle = parseFloat(rotate);
+                    let spinReq;
+                    let isSpinning = false;
+                    let holdTimer;
+
+                    const startSpin = (e) => {
+                        // Ngăn xoay nếu click vào nút, checkbox, link
+                        if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
+                        if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
+
+                        holdTimer = setTimeout(() => {
+                            isSpinning = true;
+                            card.style.transition = 'none'; 
+                            card.style.zIndex = '50';
+                            
+                            const spin = () => {
+                                if (!isSpinning) return;
+                                currentAngle += 6; 
+                                card.style.transform = `rotate(${currentAngle}deg) scale(1.05)`;
+                                spinReq = requestAnimationFrame(spin);
+                            };
+                            spinReq = requestAnimationFrame(spin);
+                        }, 200); 
+                    };
+
+                    const stopSpin = () => {
+                        clearTimeout(holdTimer);
+                        if (isSpinning) {
+                            isSpinning = false;
+                            cancelAnimationFrame(spinReq);
+                            
+                            let orig = parseFloat(rotate);
+                            let shortestTarget = orig + Math.round((currentAngle - orig) / 360) * 360;
+                            
+                            card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                            card.style.transform = `rotate(${shortestTarget}deg) scale(1)`;
+                            card.style.zIndex = 'auto';
+                            
+                            setTimeout(() => {
+                                if(!isSpinning) {
+                                    card.style.transition = 'none';
+                                    card.style.transform = `rotate(${orig}deg) scale(1)`;
+                                    currentAngle = orig;
+                                    setTimeout(() => {
+                                        if(!isSpinning) card.style.transition = '';
+                                    }, 50);
+                                }
+                            }, 600);
+                        }
+                    };
+
+                    card.addEventListener('mousedown', startSpin);
+                    card.addEventListener('touchstart', startSpin, {passive: true});
+                    card.addEventListener('mouseup', stopSpin);
+                    card.addEventListener('mouseleave', stopSpin);
+                    card.addEventListener('touchend', stopSpin);
+                    // ===================================
+
                     card.addEventListener('dragstart', (e) => {
+                        stopSpin(); // Dừng xoay nếu lỡ kéo
                         draggedVideoId = video.id;
                         setTimeout(() => card.classList.add('opacity-40', 'scale-95'), 0);
                         playSound('click');
