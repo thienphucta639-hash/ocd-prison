@@ -266,7 +266,6 @@
 
     </style></head><body class="p-4 md:p-12 relative min-h-screen">
     
-    <!-- CUSTOM CURSOR DOM -->
     <div id="magic-cursor"></div>
     <div id="magic-cursor-trail"></div>
 
@@ -362,15 +361,12 @@
                 </div>
             </div>
 
-            <!-- BẢNG NHÀ TÙ BAO BỌC GRID -->
             <div class="prison-board mt-8 mb-16">
-                <!-- Chốt kim loại 4 góc -->
                 <div class="bolt top-left"></div>
                 <div class="bolt top-right"></div>
                 <div class="bolt bottom-left"></div>
                 <div class="bolt bottom-right"></div>
                 
-                <!-- Bố cục thác nước bên trong -->
                 <div id="videoGrid" class="masonry-grid relative z-10 w-full"></div>
                 
                 <div id="emptyState" class="hidden text-center py-24 relative z-10">
@@ -1186,8 +1182,48 @@
                         document.addEventListener('touchend', stopDrag);
                     };
 
-                    card.addEventListener('mousedown', startCustomDrag);
-                    card.addEventListener('touchstart', startCustomDrag, {passive: false});
+                    let holdTimer = null;
+                    let holdStartX = 0;
+                    let holdStartY = 0;
+
+                    const handleDragStart = (e) => {
+                        if (e.type === 'mousedown' && e.button !== 0) return;
+                        if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
+                        if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
+
+                        holdStartX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+                        holdStartY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
+
+                        holdTimer = setTimeout(() => {
+                            holdTimer = null;
+                            startCustomDrag(e);
+                        }, 300);
+                    };
+
+                    const handleDragCancel = () => {
+                        if (holdTimer) {
+                            clearTimeout(holdTimer);
+                            holdTimer = null;
+                        }
+                    };
+
+                    const handleDragMove = (e) => {
+                        if (holdTimer) {
+                            const curX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+                            const curY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
+                            if (Math.abs(curX - holdStartX) > 5 || Math.abs(curY - holdStartY) > 5) {
+                                handleDragCancel();
+                            }
+                        }
+                    };
+
+                    card.addEventListener('mousedown', handleDragStart);
+                    card.addEventListener('touchstart', handleDragStart, {passive: false});
+                    card.addEventListener('mouseup', handleDragCancel);
+                    card.addEventListener('touchend', handleDragCancel);
+                    card.addEventListener('mouseleave', handleDragCancel);
+                    card.addEventListener('mousemove', handleDragMove);
+                    card.addEventListener('touchmove', handleDragMove, {passive: true});
                     // ==========================================================
 
                     let domain = '';
