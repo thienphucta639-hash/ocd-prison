@@ -801,7 +801,14 @@
                         if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
                         if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
 
+                        // Xóa các bôi đen hiện tại (nếu có) trước khi bắt đầu kéo
+                        window.getSelection().removeAllRanges();
+
                         isDragging = true;
+                        
+                        // Chặn bôi đen chữ khi đang giữ chuột
+                        document.body.classList.add('select-none');
+
                         const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
                         const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                         
@@ -848,6 +855,9 @@
                         const stopDrag = (ev) => {
                             if (!isDragging) return;
                             isDragging = false;
+
+                            // Trả lại khả năng bôi đen văn bản bình thường sau khi nhả chuột
+                            document.body.classList.remove('select-none');
 
                             document.removeEventListener('mousemove', moveDrag);
                             document.removeEventListener('mouseup', stopDrag);
