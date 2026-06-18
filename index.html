@@ -266,16 +266,13 @@
 
     </style></head><body class="p-4 md:p-12 relative min-h-screen">
     
+    <!-- CUSTOM CURSOR DOM -->
     <div id="magic-cursor"></div>
     <div id="magic-cursor-trail"></div>
 
     <div class="fairy-lights"></div>
 
-    <button onclick="openGame()" class="fixed top-6 right-6 z-[55] bg-[#e46b5a] text-[#111] px-5 py-3 rounded-2xl font-bold pixel-text shadow-[0_0_20px_rgba(228,107,90,0.5)] hover:scale-105 transition-transform">
-        🚪 PHÒNG GIAM KẾ
-    </button>
-
-    <div id="mainView" class="w-full mx-auto relative z-10 transition-opacity duration-300">
+    <div class="w-full mx-auto relative z-10">
         <header class="mb-10 md:mb-14 text-center pt-10">
             <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
                 Bù lu Bù loa
@@ -365,44 +362,22 @@
                 </div>
             </div>
 
+            <!-- BẢNG NHÀ TÙ BAO BỌC GRID -->
             <div class="prison-board mt-8 mb-16">
+                <!-- Chốt kim loại 4 góc -->
                 <div class="bolt top-left"></div>
                 <div class="bolt top-right"></div>
                 <div class="bolt bottom-left"></div>
                 <div class="bolt bottom-right"></div>
                 
+                <!-- Bố cục thác nước bên trong -->
                 <div id="videoGrid" class="masonry-grid relative z-10 w-full"></div>
                 
-                <div id="emptyState" class="hidden text-center py-24 relative z-10"></div>
+                <div id="emptyState" class="hidden text-center py-24 relative z-10">
+                </div>
             </div>
         </section>
     </div>
-
-    <div id="gameView" class="hidden fixed inset-0 bg-[#121212] z-[60] flex flex-col items-center justify-center overflow-hidden">
-        
-        <div class="absolute top-6 left-6 right-6 flex justify-between items-center z-[70]">
-            <h2 class="pixel-text text-2xl md:text-3xl text-[#eab308] drop-shadow-[0_0_10px_#eab308]">Hãy sắp xếp lại mớ bừa bộn này!</h2>
-            <button onclick="finishGame()" class="bg-[#8da47e] text-[#111] px-6 py-3 rounded-xl font-bold pixel-text shadow-[0_0_20px_rgba(141,164,126,0.6)] hover:scale-110 transition-transform">
-                ✅ HOÀN THÀNH
-            </button>
-        </div>
-
-        <div class="prison-board w-[95vw] h-[85vh] relative mt-16 overflow-hidden" id="gamePrisonBoard">
-            <div class="bolt top-left"></div>
-            <div class="bolt top-right"></div>
-            <div class="bolt bottom-left"></div>
-            <div class="bolt bottom-right"></div>
-
-            <div id="gameOutlines" class="absolute inset-0 p-8 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8 content-start pointer-events-none opacity-20"></div>
-            
-            <div id="gameCardsContainer" class="absolute inset-0"></div>
-        </div>
-    </div>
-
-    <div id="jumpscare" class="hidden fixed inset-0 z-[999999] bg-black flex items-center justify-center">
-        <h1 class="text-[12vw] font-bold text-red-600 pixel-text animate-ping text-center leading-none tracking-tighter" style="text-shadow: 0 0 50px red, 0 0 100px darkred;">HẾT<br>LƯỜI<br>CHƯA?!</h1>
-    </div>
-
 
     <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center">
         <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base whitespace-nowrap"></span>
@@ -480,13 +455,6 @@
                 gain.gain.setValueAtTime(0.1, now);
                 gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
                 osc.start(now); osc.stop(now + 0.15);
-            } else if (type === 'jumpscare') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(40, now + 1.5);
-                gain.gain.setValueAtTime(1, now);
-                gain.gain.linearRampToValueAtTime(0.01, now + 1.5);
-                osc.start(now); osc.stop(now + 1.5);
             }
         }
 
@@ -868,14 +836,22 @@
                 filteredVideos = filteredVideos.filter(v => v.priority === currentPriorityFilter);
             }
 
+            // THUẬT TOÁN SẮP XẾP CHUYÊN GIA 4 LỚP KHOA HỌC
             filteredVideos.sort((a, b) => {
+                // Lớp 1: Đã hoàn thành thì cho chìm xuống cuối
                 if (a.completed !== b.completed) return a.completed ? 1 : -1;
+                
+                // Lớp 2: Ưu tiên (Đỏ > Vàng > Xanh)
                 if (priorityScore[b.priority] !== priorityScore[a.priority]) {
                     return priorityScore[b.priority] - priorityScore[a.priority];
                 }
+                
+                // Lớp 3: Cùng ưu tiên thì xếp theo Chủ Đề (Category) cho gọn gàng
                 if (a.category !== b.category) {
                     return a.category.localeCompare(b.category);
                 }
+                
+                // Lớp 4: Cùng chủ đề thì mới nhất xếp trước
                 return b.id - a.id;
             });
 
@@ -955,7 +931,7 @@
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
-                    // VẬT LÝ PAGE X/Y (Giao diện cũ - GIỮ NGUYÊN)
+                    // === VẬT LÝ TỌA ĐỘ TUYỆT ĐỐI (PAGE X/Y) - VƯỢT GIỚI HẠN SCROLL ===
                     let isDragging = false;
                     let startX = 0, startY = 0;
                     let centerX = 0, centerY = 0;
@@ -975,18 +951,23 @@
                         document.body.classList.add('select-none');
 
                         isDragging = true;
+                        
+                        // SỬ DỤNG TỌA ĐỘ TUYỆT ĐỐI CỦA DOCUMENT ĐỂ KHÔNG BỊ GIỚI HẠN
                         const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
                         const pageY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
                         
-                        startX = pageX; startY = pageY;
+                        startX = pageX;
+                        startY = pageY;
 
+                        // Xác định tâm thẻ dựa trên tọa độ tuyệt đối
                         const rect = card.getBoundingClientRect();
                         centerX = rect.left + window.scrollX + rect.width / 2;
                         centerY = rect.top + window.scrollY + rect.height / 2;
                         
                         const clickOffsetX = centerX - startX;
                         const clickOffsetY = centerY - startY;
-                        targetX = clickOffsetX; targetY = clickOffsetY;
+                        targetX = clickOffsetX;
+                        targetY = clickOffsetY;
 
                         prevMouseAngle = Math.atan2(pageY - centerY, pageX - centerX);
 
@@ -997,29 +978,39 @@
                         card.classList.remove('hover-spring'); 
 
                         otherCards = [];
-                        document.querySelectorAll('#videoGrid .paper-card').forEach(other => {
+                        document.querySelectorAll('.paper-card').forEach(other => {
                             if (other === card) return;
                             const oRect = other.getBoundingClientRect();
                             let cx = oRect.left + window.scrollX + oRect.width / 2;
                             let cy = oRect.top + window.scrollY + oRect.height / 2;
+                            
                             let curOx = parseFloat(other.dataset.offsetX || '0');
                             let curOy = parseFloat(other.dataset.offsetY || '0');
                             
                             otherCards.push({
                                 el: other,
-                                baseCX: cx - curOx, baseCY: cy - curOy,
+                                baseCX: cx - curOx,
+                                baseCY: cy - curOy,
                                 origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0'),
-                                targetOx: curOx, targetOy: curOy,
-                                curOx: curOx, curOy: curOy
+                                targetOx: curOx,
+                                targetOy: curOy,
+                                curOx: curOx,
+                                curOy: curOy
                             });
+                            
                             other.style.willChange = 'transform';
                             other.style.transition = 'none'; 
                         });
 
                         const updateLoop = () => {
                             if (!isDragging) return;
-                            currentX += (targetX - currentX) * 0.5; currentY += (targetY - currentY) * 0.5;
-                            const dragCX = centerX + currentX; const dragCY = centerY + currentY;
+                            
+                            currentX += (targetX - currentX) * 0.5;
+                            currentY += (targetY - currentY) * 0.5;
+                            
+                            const dragCX = centerX + currentX;
+                            const dragCY = centerY + currentY;
+
                             const currentMouseX = startX + targetX - clickOffsetX;
                             const currentMouseY = startY + targetY - clickOffsetY;
                             const mouseDist = Math.sqrt((currentMouseX - dragCX)**2 + (currentMouseY - dragCY)**2);
@@ -1029,6 +1020,7 @@
                                 let deltaAngle = mouseAngle - prevMouseAngle;
                                 if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
                                 if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
+                                
                                 currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.2;
                                 prevMouseAngle = mouseAngle;
                             }
@@ -1036,22 +1028,32 @@
                             card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
                             
                             otherCards.forEach(other => {
-                                let tOx = other.targetOx; let tOy = other.targetOy;
-                                const dx = (other.baseCX + tOx) - dragCX; const dy = (other.baseCY + tOy) - dragCY;
+                                let tOx = other.targetOx;
+                                let tOy = other.targetOy;
+                                
+                                const dx = (other.baseCX + tOx) - dragCX;
+                                const dy = (other.baseCY + tOy) - dragCY;
                                 const dist = Math.sqrt(dx*dx + dy*dy);
                                 const repelRadius = 320; 
 
                                 if (dist < repelRadius && dist > 1) {
                                     const overlap = repelRadius - dist;
                                     const force = overlap * 0.15; 
-                                    tOx += (dx / dist) * force; tOy += (dy / dist) * force;
+                                    tOx += (dx / dist) * force;
+                                    tOy += (dy / dist) * force;
                                 }
 
-                                other.curOx += (tOx - other.curOx) * 0.2; other.curOy += (tOy - other.curOy) * 0.2;
-                                other.targetOx = tOx; other.targetOy = tOy;
-                                other.el.dataset.offsetX = other.curOx; other.el.dataset.offsetY = other.curOy;
+                                other.curOx += (tOx - other.curOx) * 0.2;
+                                other.curOy += (tOy - other.curOy) * 0.2;
+                                
+                                other.targetOx = tOx;
+                                other.targetOy = tOy;
+
+                                other.el.dataset.offsetX = other.curOx;
+                                other.el.dataset.offsetY = other.curOy;
                                 other.el.style.transform = `translate3d(${other.curOx}px, ${other.curOy}px, 0) rotate(${other.origRotate}deg)`;
                             });
+
                             rAF_ID = requestAnimationFrame(updateLoop);
                         };
                         rAF_ID = requestAnimationFrame(updateLoop);
@@ -1059,10 +1061,15 @@
                         const moveDrag = (ev) => {
                             if (!isDragging) return;
                             ev.preventDefault();
+
+                            // SỬ DỤNG TỌA ĐỘ PAGE ĐỂ KHÔNG BỊ LỖI KHI KÉO XUỐNG
                             const pX = ev.type.includes('mouse') ? ev.pageX : ev.touches[0].pageX;
                             const pY = ev.type.includes('mouse') ? ev.pageY : ev.touches[0].pageY;
                             
-                            targetX = (pX - startX) + clickOffsetX; targetY = (pY - startY) + clickOffsetY;
+                            targetX = (pX - startX) + clickOffsetX;
+                            targetY = (pY - startY) + clickOffsetY;
+
+                            // DROPZONE DÙNG VIEWPORT COORDS (clientX/clientY)
                             const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
                             const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
 
@@ -1080,6 +1087,7 @@
                             if (!isDragging) return;
                             isDragging = false;
                             cancelAnimationFrame(rAF_ID);
+
                             document.body.classList.remove('select-none');
                             document.removeEventListener('mousemove', moveDrag);
                             document.removeEventListener('mouseup', stopDrag);
@@ -1091,11 +1099,17 @@
 
                             otherCards.forEach(other => {
                                 if (other.el.resetTimeout) clearTimeout(other.el.resetTimeout);
+                                
                                 other.el.resetTimeout = setTimeout(() => {
                                     other.el.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                                     other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
-                                    other.el.dataset.offsetX = 0; other.el.dataset.offsetY = 0;
-                                    setTimeout(() => { other.el.style.transition = ''; other.el.style.willChange = 'auto'; }, 800);
+                                    other.el.dataset.offsetX = 0;
+                                    other.el.dataset.offsetY = 0;
+                                    
+                                    setTimeout(() => {
+                                        other.el.style.transition = '';
+                                        other.el.style.willChange = 'auto';
+                                    }, 800);
                                 }, 3000); 
                             });
 
@@ -1111,38 +1125,59 @@
                                     const newPriority = zone.getAttribute('data-priority');
                                     if (video.priority !== newPriority) {
                                         video.priority = newPriority;
-                                        saveToLocalStorage(); playSound('drop'); renderUI();
+                                        saveToLocalStorage();
+                                        playSound('drop');
+                                        renderUI();
                                     }
                                 }
                             });
 
-                            if (droppedOnZone) { card.style.willChange = 'auto'; return; }
+                            if (droppedOnZone) {
+                                card.style.willChange = 'auto';
+                                return;
+                            }
 
                             const distance = Math.sqrt(targetX * targetX + targetY * targetY);
+                            
                             if (distance > 100) { 
                                 card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
                                 const finalRotateDeg = currentRotateDeg + 360;
+                                
                                 card.style.transform = `translate3d(${targetX * 5}px, ${targetY * 5}px, 0) rotate(${finalRotateDeg}deg) scale(0.2)`;
-                                card.style.opacity = '0'; card.style.pointerEvents = 'none'; playSound('drop');
+                                card.style.opacity = '0';
+                                card.style.pointerEvents = 'none'; 
+                                playSound('drop');
                                 
                                 setTimeout(() => {
                                     card.style.transition = 'none';
                                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg) scale(0.5)`;
+                                    
                                     setTimeout(() => {
                                         card.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease';
                                         card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg) scale(1)`;
-                                        card.style.opacity = '1'; card.style.pointerEvents = 'auto'; 
-                                        card.style.willChange = 'auto'; playSound('type'); 
+                                        card.style.opacity = '1';
+                                        card.style.pointerEvents = 'auto'; 
+                                        card.style.willChange = 'auto';
+                                        playSound('type'); 
                                     }, 50);
                                 }, 3000); 
+                                
+                                currentX = 0; currentY = 0;
                                 return;
                             }
 
                             card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                             card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
+                            
                             setTimeout(() => {
-                                if (!isDragging) { card.style.zIndex = 'auto'; card.style.transition = ''; card.style.willChange = 'auto'; }
+                                if (!isDragging) {
+                                    card.style.zIndex = 'auto';
+                                    card.style.transition = '';
+                                    card.style.willChange = 'auto';
+                                }
                             }, 600);
+
+                            targetX = 0; targetY = 0;
                         };
 
                         document.addEventListener('mousemove', moveDrag, {passive: false});
@@ -1205,20 +1240,33 @@
                     card.innerHTML = `
                         ${checkboxHtml}
                         <div class="washi-tape" style="background-color: ${tapeColors[video.priority]}; transform: translateX(-50%) rotate(${Math.random() * 4 - 2}deg)"></div>
+                        
                         <div class="mt-5 pr-8">
                             <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
-                                <span class="bg-[#222] text-[#8da47e] text-xs px-3 py-1.5 rounded pixel-text border border-[#8da47e]/50 font-bold shadow-sm">${video.category}</span>
-                                <span class="text-xs font-bold px-2 py-1 bg-white/50 rounded-md border text-gray-800 shadow-sm whitespace-nowrap">${priorityIcon[video.priority]}</span>
+                                <span class="bg-[#222] text-[#8da47e] text-xs px-3 py-1.5 rounded pixel-text border border-[#8da47e]/50 font-bold shadow-sm">
+                                    ${video.category}
+                                </span>
+                                <span class="text-xs font-bold px-2 py-1 bg-white/50 rounded-md border text-gray-800 shadow-sm whitespace-nowrap" title="Mức độ ưu tiên">
+                                    ${priorityIcon[video.priority]}
+                                </span>
                             </div>
+                            
                             <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words ${video.completed ? 'line-through decoration-2 decoration-[#e46b5a]/50' : ''}">${video.title}</h3>
-                            <a href="${video.link}" target="_blank" class="inline-block text-sm text-[#e46b5a] font-bold hover:text-[#c45242] underline decoration-dashed underline-offset-4 mb-5 break-words line-clamp-2 transition-colors">↳ Khám phá: ${domain}</a>
+                            
+                            <a href="${video.link}" target="_blank" class="inline-block text-sm text-[#e46b5a] font-bold hover:text-[#c45242] underline decoration-dashed underline-offset-4 mb-5 break-words line-clamp-2 transition-colors">
+                                ↳ Khám phá: ${domain}
+                            </a>
+
                             <div class="bg-black/5 p-4 rounded-xl border border-black/10 mb-4 shadow-inner break-words">
                                 <p class="handwritten whitespace-pre-wrap ${video.completed ? 'line-through decoration-1 decoration-gray-400' : ''}">${video.note}</p>
                             </div>
                         </div>
+
                         <div class="flex items-center justify-between mt-auto pt-4 border-t-2 border-dashed border-gray-300/60">
                             <span class="text-xs font-bold text-gray-500 pixel-text text-base">ID:${video.id.slice(-4)} | ${video.date}</span>
-                            <div class="flex items-center gap-1 sm:gap-2">${actionButtons}</div>
+                            <div class="flex items-center gap-1 sm:gap-2">
+                                ${actionButtons}
+                            </div>
                         </div>
                     `;
                     grid.appendChild(card);
@@ -1226,153 +1274,11 @@
             }
         }
 
+        function renderUI() {
+            renderFilters();
+            renderPriorityFilters();
+            renderVideos();
+        }
+
         renderUI();
-
-        // ================= GIAO DIỆN GAME (SẮP XẾP OCD) LOGIC =================
-        function openGame() {
-            playSound('click');
-            document.getElementById('mainView').classList.add('opacity-0', 'pointer-events-none');
-            setTimeout(() => {
-                document.getElementById('mainView').classList.add('hidden');
-                document.getElementById('gameView').classList.remove('hidden');
-            }, 300);
-
-            const activeVids = videos.filter(v => !v.isDeleted);
-            
-            // 1. Vẽ các khung lưới định vị (Chỉ để nhìn)
-            const outlineGrid = document.getElementById('gameOutlines');
-            outlineGrid.innerHTML = '';
-            activeVids.forEach(() => {
-                const box = document.createElement('div');
-                box.className = 'border-4 border-dashed border-white/20 rounded-xl h-48 w-full';
-                outlineGrid.appendChild(box);
-            });
-
-            // 2. Rải các thẻ bài bừa bộn
-            const cardsContainer = document.getElementById('gameCardsContainer');
-            cardsContainer.innerHTML = '';
-            
-            const boardRect = document.getElementById('gamePrisonBoard').getBoundingClientRect();
-
-            activeVids.forEach((video) => {
-                const card = document.createElement('div');
-                card.className = `paper-card priority-${video.priority} p-4 absolute cursor-grab select-none`;
-                card.style.width = '300px';
-                card.style.height = 'auto';
-                
-                // Rải bừa bãi trong giới hạn bảng
-                const rx = Math.random() * (boardRect.width - 320);
-                const ry = Math.random() * (boardRect.height - 250);
-                const rDeg = (Math.random() * 160) - 80; // Vứt lộn xộn
-                
-                card.style.left = `${rx}px`;
-                card.style.top = `${ry}px`;
-                card.style.transform = `translate3d(0px, 0px, 0) rotate(${rDeg}deg)`;
-                
-                card.dataset.savedX = 0;
-                card.dataset.savedY = 0;
-                card.dataset.savedRot = rDeg;
-
-                card.innerHTML = `
-                    <div class="washi-tape" style="background-color: ${tapeColors[video.priority]};"></div>
-                    <h3 class="font-bold text-xl text-[#1a1a1a] mt-4 line-clamp-2">${video.title}</h3>
-                    <div class="mt-2 text-sm text-gray-500 pixel-text">${video.category}</div>
-                `;
-                
-                makeGameCardDraggable(card);
-                cardsContainer.appendChild(card);
-            });
-        }
-
-        // Logic kéo & chỉnh thẳng thẻ TỰ DO KHÔNG ÉP KHUÔN
-        function makeGameCardDraggable(card) {
-            let isDragging = false;
-            let startX, startY;
-            let currentX = 0, currentY = 0;
-            let currentRotateDeg = parseFloat(card.dataset.savedRot || 0);
-            let centerX, centerY;
-            let prevMouseAngle = 0;
-
-            const startDrag = (e) => {
-                if (e.button !== 0) return;
-                isDragging = true;
-                document.body.classList.add('select-none');
-                
-                // Đưa lên trên cùng khi đang cầm
-                document.querySelectorAll('#gameCardsContainer .paper-card').forEach(c => c.style.zIndex = '10');
-                card.style.zIndex = '9999';
-                card.style.transition = 'none';
-
-                startX = e.pageX; 
-                startY = e.pageY;
-                
-                const rect = card.getBoundingClientRect();
-                centerX = rect.left + rect.width / 2;
-                centerY = rect.top + rect.height / 2;
-
-                prevMouseAngle = Math.atan2(e.pageY - centerY, e.pageX - centerX);
-                
-                currentX = parseFloat(card.dataset.savedX || 0);
-                currentY = parseFloat(card.dataset.savedY || 0);
-                currentRotateDeg = parseFloat(card.dataset.savedRot || 0);
-            };
-
-            const moveDrag = (e) => {
-                if (!isDragging) return;
-                const pX = e.pageX; const pY = e.pageY;
-
-                const dx = pX - startX;
-                const dy = pY - startY;
-
-                const newX = currentX + dx;
-                const newY = currentY + dy;
-
-                // Cánh quạt quay tay: cho phép tự nắn thẳng thẻ bằng cách đưa chuột theo hình tròn
-                const mouseDist = Math.sqrt((pX - centerX)**2 + (pY - centerY)**2);
-                if(mouseDist > 5) {
-                    const mouseAngle = Math.atan2(pY - centerY, pX - centerX);
-                    let deltaAngle = mouseAngle - prevMouseAngle;
-                    if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
-                    if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
-                    
-                    currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.5;
-                    prevMouseAngle = mouseAngle;
-                }
-
-                card.style.transform = `translate3d(${newX}px, ${newY}px, 0) rotate(${currentRotateDeg}deg)`;
-            };
-
-            const stopDrag = (e) => {
-                if (!isDragging) return;
-                isDragging = false;
-                document.body.classList.remove('select-none');
-
-                // Lưu cứng vị trí và độ nghiêng VĨNH VIỄN không hút vào lưới
-                const pX = e.pageX; const pY = e.pageY;
-                card.dataset.savedX = currentX + (pX - startX);
-                card.dataset.savedY = currentY + (pY - startY);
-                card.dataset.savedRot = currentRotateDeg;
-            };
-
-            card.addEventListener('mousedown', startDrag);
-            document.addEventListener('mousemove', moveDrag);
-            document.addEventListener('mouseup', stopDrag);
-        }
-
-        // Hoàn thành & Jumpscare
-        function finishGame() {
-            const js = document.getElementById('jumpscare');
-            js.classList.remove('hidden');
-            
-            playSound('jumpscare');
-
-            setTimeout(() => {
-                js.classList.add('hidden');
-                document.getElementById('gameView').classList.add('hidden');
-                
-                const mainView = document.getElementById('mainView');
-                mainView.classList.remove('hidden');
-                setTimeout(() => mainView.classList.remove('opacity-0', 'pointer-events-none'), 50);
-            }, 2000);
-        }
     </script></body></html>
