@@ -156,7 +156,6 @@
             opacity: 1 !important;
         }
 
-        /* Thanh cuộn gọn gàng cho phần tiến độ */
         .custom-scrollbar::-webkit-scrollbar {
             width: 6px;
         }
@@ -230,9 +229,9 @@
                 </h3>
                 
                 <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4">
+                    <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4 flex flex-col justify-center">
                         <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
-                        <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3"></div>
+                        <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3 items-center"></div>
                     </div>
 
                     <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
@@ -256,13 +255,18 @@
                 </div>
             </div>
 
-            <div id="videoGrid" class="masonry-grid pt-4"></div>
+            <div id="videoGrid" class="masonry-grid pt-4 pb-16"></div>
             
             <div id="emptyState" class="hidden text-center py-24 glass-panel rounded-3xl mt-10">
-                <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">⛓️🥀</div>
-                <p class="text-xl md:text-2xl text-[#8da47e] pixel-text font-bold tracking-widest">phòng giam trống rỗng. Hãy phạm tội</p>
-            </div>
+                </div>
         </section>
+    </div>
+
+    <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center">
+        <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base whitespace-nowrap"></span>
+        <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm whitespace-nowrap"></button>
+        <button onclick="bulkRestore()" id="bulkRestoreBtn" class="hidden bg-[#8da47e] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#9eb88f] transition-all text-xs md:text-sm whitespace-nowrap">PHỤC HỒI</button>
+        <button onclick="clearSelection()" class="text-gray-400 hover:text-white px-2 font-bold pixel-text text-xs md:text-sm">HỦY</button>
     </div>
 
     <script>
@@ -342,7 +346,9 @@
 
         let videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
         let currentFilter = 'All';
-        let currentPriorityFilter = 'All'; // Biến theo dõi trạng thái lọc của màu ưu tiên
+        let currentPriorityFilter = 'All'; 
+        let isTrashView = false;
+        let selectedIds = new Set();
         let editingId = null;
 
         const form = document.getElementById('videoForm');
@@ -361,12 +367,74 @@
         // Tính năng Lọc Theo Màu Ưu Tiên
         function togglePriorityFilter(priority) {
             if (currentPriorityFilter === priority) {
-                currentPriorityFilter = 'All'; // Tắt bộ lọc nếu bấm lại lần 2
+                currentPriorityFilter = 'All'; 
             } else {
                 currentPriorityFilter = priority;
             }
+            clearSelection();
             playSound('click');
             renderUI();
+        }
+
+        // Tính năng chọn hàng loạt
+        window.toggleSelection = function(e, id) {
+            e.stopPropagation();
+            if (e.target.checked) {
+                selectedIds.add(id);
+            } else {
+                selectedIds.delete(id);
+            }
+            playSound('type');
+            updateBulkActionBar();
+        }
+
+        window.updateBulkActionBar = function() {
+            const bar = document.getElementById('bulkActionBar');
+            const count = document.getElementById('selectedCount');
+            const btn = document.getElementById('bulkActionBtn');
+            const restoreBtn = document.getElementById('bulkRestoreBtn');
+            
+            if (selectedIds.size > 0) {
+                bar.classList.remove('hidden');
+                count.innerText = `ĐÃ CHỌN: ${selectedIds.size}`;
+                if (isTrashView) {
+                    btn.innerText = 'XÓA VĨNH VIỄN';
+                    restoreBtn.classList.remove('hidden');
+                } else {
+                    btn.innerText = 'TIỄN RA PHÁP TRƯỜNG';
+                    restoreBtn.classList.add('hidden');
+                }
+            } else {
+                bar.classList.add('hidden');
+            }
+        }
+
+        window.clearSelection = function() {
+            selectedIds.clear();
+            updateBulkActionBar();
+            renderUI();
+        }
+
+        window.bulkAction = function() {
+            if (isTrashView) {
+                videos = videos.filter(v => !selectedIds.has(v.id));
+            } else {
+                videos.forEach(v => {
+                    if (selectedIds.has(v.id)) v.isDeleted = true;
+                });
+            }
+            saveToLocalStorage();
+            playSound('success');
+            clearSelection();
+        }
+
+        window.bulkRestore = function() {
+            videos.forEach(v => {
+                if (selectedIds.has(v.id)) v.isDeleted = false;
+            });
+            saveToLocalStorage();
+            playSound('success');
+            clearSelection();
         }
 
         form.addEventListener('submit', function(e) {
@@ -391,7 +459,8 @@
                     category: document.getElementById('categoryInput').value.trim(),
                     priority: document.getElementById('priorityInput').value,
                     note: document.getElementById('noteInput').value.trim() || "trống thía...",
-                    completed: false, // Mặc định là chưa hoàn thành
+                    completed: false, 
+                    isDeleted: false,
                     date: new Date().toLocaleDateString('vi-VN')
                 };
                 videos.push(newVideo);
@@ -421,9 +490,22 @@
         }
 
         function deleteVideo(id) {
-            videos = videos.filter(v => v.id !== id);
+            if (isTrashView) {
+                videos = videos.filter(v => v.id !== id);
+            } else {
+                const index = videos.findIndex(v => v.id === id);
+                if (index !== -1) videos[index].isDeleted = true;
+            }
             saveToLocalStorage();
             playSound('click');
+            renderUI();
+        }
+
+        window.restoreVideo = function(id) {
+            const index = videos.findIndex(v => v.id === id);
+            if (index !== -1) videos[index].isDeleted = false;
+            saveToLocalStorage();
+            playSound('success');
             renderUI();
         }
 
@@ -465,28 +547,55 @@
         });
 
         function renderFilters() {
-            const topics = new Set(videos.map(v => v.category));
+            // Lọc ra các category chỉ có trong view hiện tại
+            const activeVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
+            const topics = new Set(activeVideos.map(v => v.category));
             const cats = ['All', ...Array.from(topics)];
+            
             filterContainer.innerHTML = '';
 
             cats.forEach(cat => {
                 const btn = document.createElement('button');
                 btn.innerText = cat === 'All' ? '⛓️🥀 TẤT CẢ' : `▤ ${cat}`;
                 
-                let baseClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider ";
-                if (currentFilter === cat) {
+                let baseClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 ";
+                if (currentFilter === cat && !isTrashView) {
                     btn.className = baseClasses + "bg-[#8da47e] text-[#1a1a1a] shadow-[0_0_15px_#8da47e] transform scale-105";
                 } else {
                     btn.className = baseClasses + "bg-[#2a2a2a] text-gray-400 border border-gray-700 hover:text-white hover:border-[#8da47e]";
                 }
 
                 btn.onclick = () => {
+                    isTrashView = false;
                     currentFilter = cat;
+                    clearSelection();
                     playSound('click');
                     renderUI();
                 };
                 filterContainer.appendChild(btn);
             });
+
+            // Thêm Vạch ngăn cách và Nút Pháp Trường
+            const divider = document.createElement('div');
+            divider.className = "w-[2px] h-8 bg-gray-700 mx-2 hidden md:block mb-2";
+            filterContainer.appendChild(divider);
+
+            const trashBtn = document.createElement('button');
+            trashBtn.innerText = '🪓 PHÁP TRƯỜNG';
+            let trashClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider ml-0 md:ml-2 mb-2 border ";
+            if (isTrashView) {
+                trashBtn.className = trashClasses + "bg-[#e46b5a] text-[#111] shadow-[0_0_15px_#e46b5a] border-[#e46b5a] transform scale-105";
+            } else {
+                trashBtn.className = trashClasses + "bg-[#2a2a2a] text-[#e46b5a] border-gray-700 hover:border-[#e46b5a] hover:bg-[#3a2a2a]";
+            }
+            trashBtn.onclick = () => {
+                isTrashView = true;
+                currentFilter = 'All';
+                clearSelection();
+                playSound('click');
+                renderUI();
+            };
+            filterContainer.appendChild(trashBtn);
         }
 
         function renderPriorityFilters() {
@@ -516,11 +625,12 @@
             const progressInner = document.getElementById('progressInner');
             progressInner.innerHTML = ''; 
             
-            // Lọc theo Category
-            let filteredVideos = currentFilter === 'All' 
-                ? [...videos] : videos.filter(v => v.category === currentFilter);
+            let filteredVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
+            
+            if (!isTrashView && currentFilter !== 'All') {
+                filteredVideos = filteredVideos.filter(v => v.category === currentFilter);
+            }
 
-            // Bổ sung Lọc theo Priority
             if (currentPriorityFilter !== 'All') {
                 filteredVideos = filteredVideos.filter(v => v.priority === currentPriorityFilter);
             }
@@ -536,40 +646,57 @@
                 grid.classList.add('hidden');
                 emptyState.classList.remove('hidden');
                 progressContainer.classList.add('hidden');
+
+                if (isTrashView) {
+                    emptyState.innerHTML = `
+                        <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">🪓</div>
+                        <p class="text-xl md:text-2xl text-[#e46b5a] pixel-text font-bold tracking-widest">pháp trường trống rỗng.</p>
+                    `;
+                } else {
+                    emptyState.innerHTML = `
+                        <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">⛓️🥀</div>
+                        <p class="text-xl md:text-2xl text-[#8da47e] pixel-text font-bold tracking-widest">phòng giam trống rỗng. Hãy phạm tội</p>
+                    `;
+                }
             } else {
                 grid.classList.remove('hidden');
                 emptyState.classList.add('hidden');
-                progressContainer.classList.remove('hidden');
+                
+                // Chỉ hiện tiến độ nếu không ở trong thùng rác
+                if (!isTrashView) {
+                    progressContainer.classList.remove('hidden');
+                    const topicsToRender = currentFilter === 'All' 
+                        ? Array.from(new Set(filteredVideos.map(v => v.category))) 
+                        : [currentFilter];
 
-                const topicsToRender = currentFilter === 'All' 
-                    ? Array.from(new Set(filteredVideos.map(v => v.category))) 
-                    : [currentFilter];
+                    topicsToRender.forEach(topic => {
+                        const topicVideos = filteredVideos.filter(v => v.category === topic);
+                        if (topicVideos.length === 0) return;
 
-                topicsToRender.forEach(topic => {
-                    const topicVideos = filteredVideos.filter(v => v.category === topic);
-                    if (topicVideos.length === 0) return;
+                        const total = topicVideos.length;
+                        const completed = topicVideos.filter(v => v.completed).length;
+                        const percent = Math.round((completed / total) * 100);
 
-                    const total = topicVideos.length;
-                    const completed = topicVideos.filter(v => v.completed).length;
-                    const percent = Math.round((completed / total) * 100);
+                        const pbColor = percent === 100 ? 'bg-[#eab308]' : 'bg-[#8da47e]';
+                        const shadowColor = percent === 100 ? 'shadow-[0_0_15px_#eab308]' : 'shadow-[0_0_12px_#8da47e]';
+                        const textColor = percent === 100 ? 'text-[#eab308]' : 'text-[#e0d8c0]';
 
-                    const pbColor = percent === 100 ? 'bg-[#eab308]' : 'bg-[#8da47e]';
-                    const shadowColor = percent === 100 ? 'shadow-[0_0_15px_#eab308]' : 'shadow-[0_0_12px_#8da47e]';
-                    const textColor = percent === 100 ? 'text-[#eab308]' : 'text-[#e0d8c0]';
-
-                    const pbHtml = `
-                        <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800">
-                            <div class="flex justify-between items-end pixel-text text-xs md:text-sm mb-2 font-bold relative z-10">
-                                <span class="tracking-widest ${textColor} truncate mr-2" title="${topic}">${topic}: ${percent}%</span>
-                                <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} XONG</span>
+                        const pbHtml = `
+                            <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800">
+                                <div class="flex justify-between items-end pixel-text text-xs md:text-sm mb-2 font-bold relative z-10">
+                                    <span class="tracking-widest ${textColor} truncate mr-2" title="${topic}">${topic}: ${percent}%</span>
+                                    <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} XONG</span>
+                                </div>
+                                <div class="w-full bg-[#0a0a0a] rounded-full h-2 md:h-3 border border-gray-700 shadow-inner overflow-hidden relative z-10">
+                                    <div class="${pbColor} h-full rounded-full transition-all duration-700 ease-out ${shadowColor}" style="width: ${percent}%"></div>
+                                </div>
                             </div>
-                            <div class="w-full bg-[#0a0a0a] rounded-full h-2 md:h-3 border border-gray-700 shadow-inner overflow-hidden relative z-10">
-                                <div class="${pbColor} h-full rounded-full transition-all duration-700 ease-out ${shadowColor}" style="width: ${percent}%"></div>
-                            </div>
-                        </div>
-                    `;
-                    progressInner.insertAdjacentHTML('beforeend', pbHtml);
-                });
+                        `;
+                        progressInner.insertAdjacentHTML('beforeend', pbHtml);
+                    });
+                } else {
+                    progressContainer.classList.add('hidden');
+                }
 
                 filteredVideos.forEach((video, index) => {
                     const card = document.createElement('div');
@@ -596,10 +723,52 @@
                         domain = urlObj.hostname.replace('www.', '');
                     } catch(e) { domain = 'Liên kết không xác định'; }
 
+                    const isChecked = selectedIds.has(video.id) ? 'checked' : '';
+                    const checkboxHtml = `
+                        <div class="absolute top-4 right-4 z-20">
+                            <input type="checkbox" class="w-5 h-5 md:w-6 md:h-6 accent-[#e46b5a] cursor-pointer hover:scale-110 transition-transform" onclick="toggleSelection(event, '${video.id}')" ${isChecked}>
+                        </div>
+                    `;
+
+                    let actionButtons = '';
+                    if (isTrashView) {
+                        actionButtons = `
+                            <button onclick="restoreVideo('${video.id}')" class="text-gray-400 hover:text-green-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Phục hồi">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
+                                </svg>
+                            </button>
+                            <button onclick="deleteVideo('${video.id}')" class="text-gray-400 hover:text-red-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Xóa vĩnh viễn">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        `;
+                    } else {
+                        actionButtons = `
+                            <button onclick="toggleComplete('${video.id}')" class="${video.completed ? 'text-green-500' : 'text-gray-400 hover:text-green-500'} hover:scale-125 transition-transform p-1 cursor-pointer" title="Hoàn thành">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
+                                </svg>
+                            </button>
+                            <button onclick="editVideo('${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Chỉnh sửa">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </button>
+                            <button onclick="deleteVideo('${video.id}')" class="text-gray-400 hover:text-red-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Tiễn ra pháp trường">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        `;
+                    }
+
                     card.innerHTML = `
+                        ${checkboxHtml}
                         <div class="washi-tape" style="background-color: ${tapeColors[video.priority]}; transform: translateX(-50%) rotate(${Math.random() * 4 - 2}deg)"></div>
                         
-                        <div class="mt-5">
+                        <div class="mt-5 pr-8">
                             <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
                                 <span class="bg-[#222] text-[#8da47e] text-xs px-3 py-1.5 rounded pixel-text border border-[#8da47e]/50 font-bold shadow-sm">
                                     ${video.category}
@@ -623,21 +792,7 @@
                         <div class="flex items-center justify-between mt-auto pt-4 border-t-2 border-dashed border-gray-300/60">
                             <span class="text-xs font-bold text-gray-500 pixel-text text-base">ID:${video.id.slice(-4)} | ${video.date}</span>
                             <div class="flex items-center gap-1 sm:gap-2">
-                                <button onclick="toggleComplete('${video.id}')" class="${video.completed ? 'text-green-500' : 'text-gray-400 hover:text-green-500'} hover:scale-125 transition-transform p-1 cursor-pointer" title="Hoàn thành">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                </button>
-                                <button onclick="editVideo('${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Chỉnh sửa">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                    </svg>
-                                </button>
-                                <button onclick="deleteVideo('${video.id}')" class="text-gray-400 hover:text-red-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Hủy liên kết">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
+                                ${actionButtons}
                             </div>
                         </div>
                     `;
@@ -648,7 +803,7 @@
 
         function renderUI() {
             renderFilters();
-            renderPriorityFilters(); // Khởi chạy giao diện nút Lọc Màu Ưu Tiên
+            renderPriorityFilters();
             renderVideos();
         }
 
