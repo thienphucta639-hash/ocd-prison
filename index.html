@@ -1,6 +1,4 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
+<!DOCTYPE html><html lang="vi"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>mồ chôn ocd</title>
@@ -175,9 +173,7 @@
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #8da47e;
         }
-    </style>
-</head>
-<body class="p-4 md:p-12 relative min-h-screen">
+    </style></head><body class="p-4 md:p-12 relative min-h-screen">
     <div class="fairy-lights"></div>
 
     <div class="w-full mx-auto relative z-10">
@@ -602,33 +598,6 @@
             }
         }
 
-        let draggedVideoId = null;
-
-        document.querySelectorAll('.drop-zone').forEach(zone => {
-            zone.addEventListener('dragover', e => {
-                e.preventDefault();
-                zone.classList.add('drag-over');
-            });
-            zone.addEventListener('dragleave', e => {
-                zone.classList.remove('drag-over');
-            });
-            zone.addEventListener('drop', e => {
-                e.preventDefault();
-                zone.classList.remove('drag-over');
-                const newPriority = zone.getAttribute('data-priority');
-                
-                if(draggedVideoId) {
-                    const videoIndex = videos.findIndex(v => v.id === draggedVideoId);
-                    if(videoIndex > -1 && videos[videoIndex].priority !== newPriority) {
-                        videos[videoIndex].priority = newPriority;
-                        saveToLocalStorage();
-                        playSound('drop');
-                        renderUI();
-                    }
-                }
-            });
-        });
-
         function renderFilters() {
             const activeVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
             let topics = Array.from(new Set(activeVideos.map(v => v.category)));
@@ -817,79 +786,155 @@
                     
                     const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
                     card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
-                    card.style.transform = `rotate(${rotate}deg)`;
-                    
-                    card.setAttribute('draggable', 'true');
+                    card.style.transform = `translate(0px, 0px) rotate(${rotate}deg)`;
 
-                    // === TÍNH NĂNG NHẤN GIỮ ĐỂ XOAY ===
-                    let currentAngle = parseFloat(rotate);
-                    let spinReq;
-                    let isSpinning = false;
-                    let holdTimer;
+                    // === TÍNH NĂNG KÉO XOAY VÀ VỨT ĐI RỒI HỒI SINH ===
+                    let isDragging = false;
+                    let startX = 0, startY = 0;
+                    let centerX = 0, centerY = 0;
+                    let startAngle = 0;
+                    let currentX = 0, currentY = 0;
 
-                    const startSpin = (e) => {
-                        // Ngăn xoay nếu click vào nút, checkbox, link
+                    const startCustomDrag = (e) => {
+                        if (e.type === 'mousedown' && e.button !== 0) return;
+                        
                         if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
                         if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
 
-                        holdTimer = setTimeout(() => {
-                            isSpinning = true;
-                            card.style.transition = 'none'; 
-                            card.style.zIndex = '50';
-                            
-                            const spin = () => {
-                                if (!isSpinning) return;
-                                currentAngle += 6; 
-                                card.style.transform = `rotate(${currentAngle}deg) scale(1.05)`;
-                                spinReq = requestAnimationFrame(spin);
-                            };
-                            spinReq = requestAnimationFrame(spin);
-                        }, 200); 
-                    };
+                        isDragging = true;
+                        const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
+                        const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
+                        
+                        startX = clientX;
+                        startY = clientY;
 
-                    const stopSpin = () => {
-                        clearTimeout(holdTimer);
-                        if (isSpinning) {
-                            isSpinning = false;
-                            cancelAnimationFrame(spinReq);
-                            
-                            let orig = parseFloat(rotate);
-                            let shortestTarget = orig + Math.round((currentAngle - orig) / 360) * 360;
-                            
+                        const rect = card.getBoundingClientRect();
+                        centerX = rect.left + rect.width / 2;
+                        centerY = rect.top + rect.height / 2;
+
+                        startAngle = Math.atan2(clientY - centerY, clientX - centerX);
+
+                        card.style.transition = 'none';
+                        card.style.zIndex = '999';
+                        card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
+                        card.classList.remove('hover-spring'); 
+
+                        const moveDrag = (ev) => {
+                            if (!isDragging) return;
+                            ev.preventDefault();
+
+                            const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
+                            const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
+
+                            currentX = cX - startX;
+                            currentY = cY - startY;
+
+                            const currentMouseAngle = Math.atan2(cY - centerY, cX - centerX);
+                            const angleDiff = currentMouseAngle - startAngle;
+                            const rotateDeg = parseFloat(rotate) + (angleDiff * 180 / Math.PI);
+
+                            card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotateDeg}deg)`;
+
+                            document.querySelectorAll('.drop-zone').forEach(zone => {
+                                const zRect = zone.getBoundingClientRect();
+                                if (cX >= zRect.left && cX <= zRect.right && cY >= zRect.top && cY <= zRect.bottom) {
+                                    zone.classList.add('drag-over');
+                                } else {
+                                    zone.classList.remove('drag-over');
+                                }
+                            });
+                        };
+
+                        const stopDrag = (ev) => {
+                            if (!isDragging) return;
+                            isDragging = false;
+
+                            document.removeEventListener('mousemove', moveDrag);
+                            document.removeEventListener('mouseup', stopDrag);
+                            document.removeEventListener('touchmove', moveDrag);
+                            document.removeEventListener('touchend', stopDrag);
+
+                            card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
+                            card.classList.add('hover-spring');
+
+                            const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : startX);
+                            const cY = ev.type.includes('mouse') ? ev.clientY : (ev.changedTouches ? ev.changedTouches[0].clientY : startY);
+
+                            let droppedOnZone = false;
+                            document.querySelectorAll('.drop-zone').forEach(zone => {
+                                zone.classList.remove('drag-over');
+                                const zRect = zone.getBoundingClientRect();
+                                if (cX >= zRect.left && cX <= zRect.right && cY >= zRect.top && cY <= zRect.bottom) {
+                                    droppedOnZone = true;
+                                    const newPriority = zone.getAttribute('data-priority');
+                                    if (video.priority !== newPriority) {
+                                        video.priority = newPriority;
+                                        saveToLocalStorage();
+                                        playSound('drop');
+                                        renderUI();
+                                    }
+                                }
+                            });
+
+                            if (droppedOnZone) return;
+
+                            // 2. VỨT ĐI & HỒI SINH SAU 3 GIÂY
+                            const distance = Math.sqrt(currentX * currentX + currentY * currentY);
+                            if (distance > 100) { // Giảm ngưỡng xuống 100px để vứt ra cực kỳ dễ dàng
+                                card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+                                
+                                // Văng xa theo hướng kéo, xoay tít và thu nhỏ
+                                const currentMouseAngle = Math.atan2(cY - centerY, cX - centerX);
+                                const angleDiff = currentMouseAngle - startAngle;
+                                const finalRotateDeg = parseFloat(rotate) + (angleDiff * 180 / Math.PI);
+                                
+                                card.style.transform = `translate(${currentX * 5}px, ${currentY * 5}px) rotate(${finalRotateDeg + 360}deg) scale(0.2)`;
+                                card.style.opacity = '0';
+                                card.style.pointerEvents = 'none'; // Ngăn click nhầm khi đang tàng hình
+                                playSound('drop');
+                                
+                                setTimeout(() => {
+                                    // BƯỚC 1: Sau 3 giây, đưa card về vị trí cũ nhưng đang bị thu nhỏ (scale 0.5) và tàng hình
+                                    card.style.transition = 'none';
+                                    card.style.transform = `translate(0px, 0px) rotate(${rotate}deg) scale(0.5)`;
+                                    
+                                    // BƯỚC 2: Mở lại Animation để nó "pop" lên
+                                    setTimeout(() => {
+                                        card.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease';
+                                        card.style.transform = `translate(0px, 0px) rotate(${rotate}deg) scale(1)`;
+                                        card.style.opacity = '1';
+                                        card.style.pointerEvents = 'auto'; // Mở lại tương tác
+                                        playSound('type'); // Phép thuật hồi sinh
+                                    }, 50);
+                                }, 3000); // Chính xác 3 giây
+                                
+                                currentX = 0; currentY = 0;
+                                return;
+                            }
+
+                            // 3. Nếu kéo chưa đủ xa thì trả về chỗ cũ mượt mà
                             card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                            card.style.transform = `rotate(${shortestTarget}deg) scale(1)`;
-                            card.style.zIndex = 'auto';
+                            card.style.transform = `translate(0px, 0px) rotate(${rotate}deg)`;
                             
                             setTimeout(() => {
-                                if(!isSpinning) {
-                                    card.style.transition = 'none';
-                                    card.style.transform = `rotate(${orig}deg) scale(1)`;
-                                    currentAngle = orig;
-                                    setTimeout(() => {
-                                        if(!isSpinning) card.style.transition = '';
-                                    }, 50);
+                                if (!isDragging) {
+                                    card.style.zIndex = 'auto';
+                                    card.style.transition = '';
                                 }
                             }, 600);
-                        }
+
+                            currentX = 0; currentY = 0;
+                        };
+
+                        document.addEventListener('mousemove', moveDrag, {passive: false});
+                        document.addEventListener('mouseup', stopDrag);
+                        document.addEventListener('touchmove', moveDrag, {passive: false});
+                        document.addEventListener('touchend', stopDrag);
                     };
 
-                    card.addEventListener('mousedown', startSpin);
-                    card.addEventListener('touchstart', startSpin, {passive: true});
-                    card.addEventListener('mouseup', stopSpin);
-                    card.addEventListener('mouseleave', stopSpin);
-                    card.addEventListener('touchend', stopSpin);
-                    // ===================================
-
-                    card.addEventListener('dragstart', (e) => {
-                        stopSpin(); // Dừng xoay nếu lỡ kéo
-                        draggedVideoId = video.id;
-                        setTimeout(() => card.classList.add('opacity-40', 'scale-95'), 0);
-                        playSound('click');
-                    });
-                    card.addEventListener('dragend', () => {
-                        draggedVideoId = null;
-                        card.classList.remove('opacity-40', 'scale-95');
-                    });
+                    card.addEventListener('mousedown', startCustomDrag);
+                    card.addEventListener('touchstart', startCustomDrag, {passive: false});
+                    // ==========================================================
 
                     let domain = '';
                     try {
@@ -982,6 +1027,4 @@
         }
 
         renderUI();
-    </script>
-</body>
-</html>
+    </script></body></html>
