@@ -786,14 +786,20 @@
                     
                     const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
                     card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
-                    card.style.transform = `translate(0px, 0px) rotate(${rotate}deg)`;
+                    
+                    // Gắn góc xoay gốc vào dataset để dễ tính toán vật lý sau này
+                    card.setAttribute('data-orig-rotate', rotate);
+                    card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
-                    // === TÍNH NĂNG KÉO XOAY VÀ VỨT ĐI RỒI HỒI SINH ===
+                    // === VẬT LÝ KÉO XOAY SIÊU MƯỢT VÀ TƯƠNG TÁC ĐẨY CÁC THẺ KHÁC ===
                     let isDragging = false;
                     let startX = 0, startY = 0;
                     let centerX = 0, centerY = 0;
                     let startAngle = 0;
                     let currentX = 0, currentY = 0;
+                    let currentRotateDeg = parseFloat(rotate);
+                    let rAF_ID = null;
+                    let otherCards = [];
 
                     const startCustomDrag = (e) => {
                         if (e.type === 'mousedown' && e.button !== 0) return;
@@ -801,14 +807,10 @@
                         if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
                         if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
 
-                        // Xóa các bôi đen hiện tại (nếu có) trước khi bắt đầu kéo
                         window.getSelection().removeAllRanges();
-
-                        isDragging = true;
-                        
-                        // Chặn bôi đen chữ khi đang giữ chuột
                         document.body.classList.add('select-none');
 
+                        isDragging = true;
                         const clientX = e.type.includes('mouse') ? e.clientX : e.touches[0].clientX;
                         const clientY = e.type.includes('mouse') ? e.clientY : e.touches[0].clientY;
                         
@@ -818,13 +820,65 @@
                         const rect = card.getBoundingClientRect();
                         centerX = rect.left + rect.width / 2;
                         centerY = rect.top + rect.height / 2;
-
                         startAngle = Math.atan2(clientY - centerY, clientX - centerX);
 
+                        // Bật Hardware Acceleration để mượt 60fps
+                        card.style.willChange = 'transform';
                         card.style.transition = 'none';
                         card.style.zIndex = '999';
                         card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                         card.classList.remove('hover-spring'); 
+
+                        // Thu thập tọa độ tâm và góc của tất cả các thẻ khác để chuẩn bị đẩy
+                        otherCards = [];
+                        document.querySelectorAll('.paper-card').forEach(other => {
+                            if (other === card) return;
+                            const oRect = other.getBoundingClientRect();
+                            otherCards.push({
+                                el: other,
+                                cx: oRect.left + oRect.width / 2,
+                                cy: oRect.top + oRect.height / 2,
+                                origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0')
+                            });
+                            // Thêm transition mượt mà cho các thẻ bị đẩy
+                            other.style.willChange = 'transform';
+                            other.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                        });
+
+                        // Vòng lặp đồ họa mượt mà
+                        const updateLoop = () => {
+                            if (!isDragging) return;
+                            
+                            // Render thẻ đang cầm
+                            card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
+                            
+                            // Tính toán trường lực đẩy (Repulsion Force Field)
+                            const dragCX = centerX + currentX;
+                            const dragCY = centerY + currentY;
+
+                            otherCards.forEach(other => {
+                                const dx = other.cx - dragCX;
+                                const dy = other.cy - dragCY;
+                                const dist = Math.sqrt(dx*dx + dy*dy);
+                                
+                                const repelRadius = 350; // Bán kính trường lực (350px)
+                                if (dist < repelRadius && dist > 0) {
+                                    // Càng gần đẩy càng mạnh
+                                    const force = (repelRadius - dist) * 0.4; 
+                                    const angle = Math.atan2(dy, dx);
+                                    const pushX = Math.cos(angle) * force;
+                                    const pushY = Math.sin(angle) * force;
+                                    
+                                    other.el.style.transform = `translate3d(${pushX}px, ${pushY}px, 0) rotate(${other.origRotate}deg)`;
+                                } else {
+                                    // Về lại chỗ cũ nếu đi xa
+                                    other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
+                                }
+                            });
+
+                            rAF_ID = requestAnimationFrame(updateLoop);
+                        };
+                        rAF_ID = requestAnimationFrame(updateLoop);
 
                         const moveDrag = (ev) => {
                             if (!isDragging) return;
@@ -833,15 +887,15 @@
                             const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
                             const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
 
+                            // Chỉ cập nhật biến để requestAnimationFrame làm việc
                             currentX = cX - startX;
                             currentY = cY - startY;
 
                             const currentMouseAngle = Math.atan2(cY - centerY, cX - centerX);
                             const angleDiff = currentMouseAngle - startAngle;
-                            const rotateDeg = parseFloat(rotate) + (angleDiff * 180 / Math.PI);
+                            currentRotateDeg = parseFloat(rotate) + (angleDiff * 180 / Math.PI);
 
-                            card.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${rotateDeg}deg)`;
-
+                            // Xử lý drop zones
                             document.querySelectorAll('.drop-zone').forEach(zone => {
                                 const zRect = zone.getBoundingClientRect();
                                 if (cX >= zRect.left && cX <= zRect.right && cY >= zRect.top && cY <= zRect.bottom) {
@@ -855,10 +909,9 @@
                         const stopDrag = (ev) => {
                             if (!isDragging) return;
                             isDragging = false;
+                            cancelAnimationFrame(rAF_ID);
 
-                            // Trả lại khả năng bôi đen văn bản bình thường sau khi nhả chuột
                             document.body.classList.remove('select-none');
-
                             document.removeEventListener('mousemove', moveDrag);
                             document.removeEventListener('mouseup', stopDrag);
                             document.removeEventListener('touchmove', moveDrag);
@@ -866,6 +919,17 @@
 
                             card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                             card.classList.add('hover-spring');
+
+                            // Hồi phục lại các thẻ bị đẩy
+                            otherCards.forEach(other => {
+                                other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
+                                setTimeout(() => {
+                                    if (!isDragging) {
+                                        other.el.style.transition = '';
+                                        other.el.style.willChange = 'auto';
+                                    }
+                                }, 400);
+                            });
 
                             const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : startX);
                             const cY = ev.type.includes('mouse') ? ev.clientY : (ev.changedTouches ? ev.changedTouches[0].clientY : startY);
@@ -886,50 +950,49 @@
                                 }
                             });
 
-                            if (droppedOnZone) return;
+                            if (droppedOnZone) {
+                                card.style.willChange = 'auto';
+                                return;
+                            }
 
-                            // 2. VỨT ĐI & HỒI SINH SAU 3 GIÂY
+                            // Quăng rác
                             const distance = Math.sqrt(currentX * currentX + currentY * currentY);
-                            if (distance > 100) { // Giảm ngưỡng xuống 100px để vứt ra cực kỳ dễ dàng
+                            if (distance > 100) { 
                                 card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
+                                const finalRotateDeg = currentRotateDeg + 360;
                                 
-                                // Văng xa theo hướng kéo, xoay tít và thu nhỏ
-                                const currentMouseAngle = Math.atan2(cY - centerY, cX - centerX);
-                                const angleDiff = currentMouseAngle - startAngle;
-                                const finalRotateDeg = parseFloat(rotate) + (angleDiff * 180 / Math.PI);
-                                
-                                card.style.transform = `translate(${currentX * 5}px, ${currentY * 5}px) rotate(${finalRotateDeg + 360}deg) scale(0.2)`;
+                                card.style.transform = `translate3d(${currentX * 5}px, ${currentY * 5}px, 0) rotate(${finalRotateDeg}deg) scale(0.2)`;
                                 card.style.opacity = '0';
-                                card.style.pointerEvents = 'none'; // Ngăn click nhầm khi đang tàng hình
+                                card.style.pointerEvents = 'none'; 
                                 playSound('drop');
                                 
                                 setTimeout(() => {
-                                    // BƯỚC 1: Sau 3 giây, đưa card về vị trí cũ nhưng đang bị thu nhỏ (scale 0.5) và tàng hình
                                     card.style.transition = 'none';
-                                    card.style.transform = `translate(0px, 0px) rotate(${rotate}deg) scale(0.5)`;
+                                    card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg) scale(0.5)`;
                                     
-                                    // BƯỚC 2: Mở lại Animation để nó "pop" lên
                                     setTimeout(() => {
                                         card.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease';
-                                        card.style.transform = `translate(0px, 0px) rotate(${rotate}deg) scale(1)`;
+                                        card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg) scale(1)`;
                                         card.style.opacity = '1';
-                                        card.style.pointerEvents = 'auto'; // Mở lại tương tác
-                                        playSound('type'); // Phép thuật hồi sinh
+                                        card.style.pointerEvents = 'auto'; 
+                                        card.style.willChange = 'auto';
+                                        playSound('type'); 
                                     }, 50);
-                                }, 3000); // Chính xác 3 giây
+                                }, 3000); 
                                 
                                 currentX = 0; currentY = 0;
                                 return;
                             }
 
-                            // 3. Nếu kéo chưa đủ xa thì trả về chỗ cũ mượt mà
+                            // Về chỗ cũ mượt mà bằng translate3d
                             card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                            card.style.transform = `translate(0px, 0px) rotate(${rotate}deg)`;
+                            card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
                             
                             setTimeout(() => {
                                 if (!isDragging) {
                                     card.style.zIndex = 'auto';
                                     card.style.transition = '';
+                                    card.style.willChange = 'auto';
                                 }
                             }, 600);
 
