@@ -258,12 +258,10 @@
             <div id="videoGrid" class="masonry-grid pt-4 pb-16"></div>
             
             <div id="emptyState" class="hidden text-center py-24 glass-panel rounded-3xl mt-10">
-                <!-- Nội dung empty state sẽ được gen tự động qua JS -->
-            </div>
+                </div>
         </section>
     </div>
 
-    <!-- Thanh công cụ nổi cho Thao tác Hàng loạt -->
     <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center">
         <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base whitespace-nowrap"></span>
         <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm whitespace-nowrap"></button>
@@ -347,6 +345,7 @@
         });
 
         let videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
+        let pinnedTopics = JSON.parse(localStorage.getItem('pinnedTopics')) || []; 
         let currentFilter = 'All';
         let currentPriorityFilter = 'All'; 
         let isTrashView = false;
@@ -365,6 +364,18 @@
         const tapeColors = { 'high': 'rgba(228, 107, 90, 0.75)', 'medium': 'rgba(234, 179, 8, 0.75)', 'low': 'rgba(141, 164, 126, 0.75)' };
 
         function saveToLocalStorage() { localStorage.setItem('indieVideos', JSON.stringify(videos)); }
+        function savePinnedTopics() { localStorage.setItem('pinnedTopics', JSON.stringify(pinnedTopics)); }
+
+        window.togglePinTopic = function(topic) {
+            if (pinnedTopics.includes(topic)) {
+                pinnedTopics = pinnedTopics.filter(t => t !== topic);
+            } else {
+                pinnedTopics.push(topic);
+            }
+            savePinnedTopics();
+            playSound('success');
+            renderUI();
+        };
 
         function togglePriorityFilter(priority) {
             if (currentPriorityFilter === priority) {
@@ -548,23 +559,43 @@
 
         function renderFilters() {
             const activeVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
-            const topics = new Set(activeVideos.map(v => v.category));
-            const cats = ['All', ...Array.from(topics)];
+            let topics = Array.from(new Set(activeVideos.map(v => v.category)));
             
+            topics.sort((a, b) => {
+                const aPinned = pinnedTopics.includes(a);
+                const bPinned = pinnedTopics.includes(b);
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                return a.localeCompare(b);
+            });
+
+            const cats = ['All', ...topics];
             filterContainer.innerHTML = '';
 
             cats.forEach(cat => {
                 const btn = document.createElement('button');
-                btn.innerText = cat === 'All' ? '⛓️🥀 TẤT CẢ' : `▤ ${cat}`;
                 
-                let baseClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 ";
+                let baseClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 flex items-center gap-1 ";
                 if (currentFilter === cat && !isTrashView) {
                     btn.className = baseClasses + "bg-[#8da47e] text-[#1a1a1a] shadow-[0_0_15px_#8da47e] transform scale-105";
                 } else {
                     btn.className = baseClasses + "bg-[#2a2a2a] text-gray-400 border border-gray-700 hover:text-white hover:border-[#8da47e]";
                 }
 
-                btn.onclick = () => {
+                if (cat === 'All') {
+                    btn.innerText = '⛓️🥀 TẤT CẢ';
+                } else {
+                    const isPinned = pinnedTopics.includes(cat);
+                    const pinOpacity = isPinned ? 'opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)]' : 'opacity-30 hover:opacity-100 grayscale';
+                    btn.innerHTML = `<span class="whitespace-nowrap">▤ ${cat}</span> <span class="pin-icon ml-1 ${pinOpacity} transition-all duration-300 cursor-pointer text-base" title="${isPinned ? 'Bỏ ghim' : 'Ghim ưu tiên'}">📌</span>`;
+                }
+
+                btn.onclick = (e) => {
+                    if (e.target.closest('.pin-icon')) {
+                        e.stopPropagation();
+                        togglePinTopic(cat);
+                        return;
+                    }
                     isTrashView = false;
                     currentFilter = cat;
                     clearSelection();
@@ -648,7 +679,7 @@
                 if (isTrashView) {
                     emptyState.innerHTML = `
                         <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">🪓❄️</div>
-                        <p class="text-xl md:text-2xl text-[#e46b5a] pixel-text font-bold tracking-widest">pháp trường lạnh giá</p>
+                        <p class="text-xl md:text-2xl text-[#e46b5a] pixel-text font-bold tracking-widest">pháp trường lạnh giá ❄️</p>
                     `;
                 } else {
                     emptyState.innerHTML = `
@@ -662,9 +693,17 @@
                 
                 if (!isTrashView) {
                     progressContainer.classList.remove('hidden');
-                    const topicsToRender = currentFilter === 'All' 
+                    let topicsToRender = currentFilter === 'All' 
                         ? Array.from(new Set(filteredVideos.map(v => v.category))) 
                         : [currentFilter];
+
+                    topicsToRender.sort((a, b) => {
+                        const aPinned = pinnedTopics.includes(a);
+                        const bPinned = pinnedTopics.includes(b);
+                        if (aPinned && !bPinned) return -1;
+                        if (!aPinned && bPinned) return 1;
+                        return a.localeCompare(b);
+                    });
 
                     topicsToRender.forEach(topic => {
                         const topicVideos = filteredVideos.filter(v => v.category === topic);
@@ -678,10 +717,13 @@
                         const shadowColor = percent === 100 ? 'shadow-[0_0_15px_#eab308]' : 'shadow-[0_0_12px_#8da47e]';
                         const textColor = percent === 100 ? 'text-[#eab308]' : 'text-[#e0d8c0]';
 
+                        const isPinned = pinnedTopics.includes(topic);
+                        const pinIndicator = isPinned ? '📌 ' : '';
+
                         const pbHtml = `
-                            <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800">
+                            <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800 ${isPinned ? 'ring-1 ring-[#eab308]/50' : ''}">
                                 <div class="flex justify-between items-end pixel-text text-xs md:text-sm mb-2 font-bold relative z-10">
-                                    <span class="tracking-widest ${textColor} truncate mr-2" title="${topic}">${topic}: ${percent}%</span>
+                                    <span class="tracking-widest ${textColor} truncate mr-2" title="${topic}">${pinIndicator}${topic}: ${percent}%</span>
                                     <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} XONG</span>
                                 </div>
                                 <div class="w-full bg-[#0a0a0a] rounded-full h-2 md:h-3 border border-gray-700 shadow-inner overflow-hidden relative z-10">
