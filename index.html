@@ -258,14 +258,16 @@
             <div id="videoGrid" class="masonry-grid pt-4 pb-16"></div>
             
             <div id="emptyState" class="hidden text-center py-24 glass-panel rounded-3xl mt-10">
-                </div>
+                <!-- Nội dung empty state sẽ được gen tự động qua JS -->
+            </div>
         </section>
     </div>
 
+    <!-- Thanh công cụ nổi cho Thao tác Hàng loạt -->
     <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center">
         <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base whitespace-nowrap"></span>
         <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm whitespace-nowrap"></button>
-        <button onclick="bulkRestore()" id="bulkRestoreBtn" class="hidden bg-[#8da47e] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#9eb88f] transition-all text-xs md:text-sm whitespace-nowrap">PHỤC HỒI</button>
+        <button onclick="bulkRestore()" id="bulkRestoreBtn" class="hidden bg-[#8da47e] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#9eb88f] transition-all text-xs md:text-sm whitespace-nowrap">THA TỘI</button>
         <button onclick="clearSelection()" class="text-gray-400 hover:text-white px-2 font-bold pixel-text text-xs md:text-sm">HỦY</button>
     </div>
 
@@ -364,7 +366,6 @@
 
         function saveToLocalStorage() { localStorage.setItem('indieVideos', JSON.stringify(videos)); }
 
-        // Tính năng Lọc Theo Màu Ưu Tiên
         function togglePriorityFilter(priority) {
             if (currentPriorityFilter === priority) {
                 currentPriorityFilter = 'All'; 
@@ -376,7 +377,6 @@
             renderUI();
         }
 
-        // Tính năng chọn hàng loạt
         window.toggleSelection = function(e, id) {
             e.stopPropagation();
             if (e.target.checked) {
@@ -547,7 +547,6 @@
         });
 
         function renderFilters() {
-            // Lọc ra các category chỉ có trong view hiện tại
             const activeVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
             const topics = new Set(activeVideos.map(v => v.category));
             const cats = ['All', ...Array.from(topics)];
@@ -575,7 +574,6 @@
                 filterContainer.appendChild(btn);
             });
 
-            // Thêm Vạch ngăn cách và Nút Pháp Trường
             const divider = document.createElement('div');
             divider.className = "w-[2px] h-8 bg-gray-700 mx-2 hidden md:block mb-2";
             filterContainer.appendChild(divider);
@@ -649,8 +647,8 @@
 
                 if (isTrashView) {
                     emptyState.innerHTML = `
-                        <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">🪓</div>
-                        <p class="text-xl md:text-2xl text-[#e46b5a] pixel-text font-bold tracking-widest">pháp trường trống rỗng.</p>
+                        <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">🪓❄️</div>
+                        <p class="text-xl md:text-2xl text-[#e46b5a] pixel-text font-bold tracking-widest">pháp trường lạnh giá</p>
                     `;
                 } else {
                     emptyState.innerHTML = `
@@ -662,7 +660,6 @@
                 grid.classList.remove('hidden');
                 emptyState.classList.add('hidden');
                 
-                // Chỉ hiện tiến độ nếu không ở trong thùng rác
                 if (!isTrashView) {
                     progressContainer.classList.remove('hidden');
                     const topicsToRender = currentFilter === 'All' 
@@ -733,7 +730,7 @@
                     let actionButtons = '';
                     if (isTrashView) {
                         actionButtons = `
-                            <button onclick="restoreVideo('${video.id}')" class="text-gray-400 hover:text-green-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Phục hồi">
+                            <button onclick="restoreVideo('${video.id}')" class="text-gray-400 hover:text-green-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Tha tội">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                                 </svg>
