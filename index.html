@@ -1,3 +1,4 @@
+<!-- [PHẦN 1] -->
 <!DOCTYPE html><html lang="vi"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -126,13 +127,15 @@
 
         /* ================= BỐ CỤC KHOA HỌC (MASONRY CHUYÊN GIA) ================= */
         .masonry-grid {
-            column-count: 1;
-            column-gap: 2rem;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
             width: 100%;
+            align-items: start;
         }
-        @media (min-width: 768px) { .masonry-grid { column-count: 2; } }
-        @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
-        @media (min-width: 1536px) { .masonry-grid { column-count: 4; } }
+        @media (min-width: 768px) { .masonry-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media (min-width: 1024px) { .masonry-grid { grid-template-columns: repeat(3, 1fr); } }
+        @media (min-width: 1536px) { .masonry-grid { grid-template-columns: repeat(4, 1fr); } }
         
         .paper-card {
             background: #fdfbf7;
@@ -141,7 +144,6 @@
             position: relative;
             break-inside: avoid;
             page-break-inside: avoid;
-            margin-bottom: 2rem;
             color: #3b312a;
             box-shadow: 4px 8px 20px rgba(0,0,0,0.4);
             border-radius: 6px;
@@ -290,7 +292,7 @@
             
             <form id="videoForm" class="flex flex-col gap-5 md:gap-6 relative z-10">
                 <div class="flex flex-col md:flex-row gap-4 md:gap-5">
-                    <input type="url" id="linkInput" placeholder="🔗 đắp mộ cuộc lìnk" required 
+                    <input type="text" id="linkInput" placeholder="🔗 đắp mộ cuộc lìnk" required 
                         class="cute-input flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
                     
                     <input type="text" id="titleInput" placeholder="📝 đặt tên tội phạm" required 
@@ -323,32 +325,37 @@
                         class="cute-input w-full px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-medium resize-y handwritten text-xl placeholder-gray-500"></textarea>
                 </div>
                 
-                <button type="submit" id="submitBtn" class="bg-[#e46b5a] text-[#111] font-bold pixel-text text-lg md:text-2xl px-4 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-[#ff7b6a] transition-all transform active:scale-90 shadow-[0_0_25px_rgba(228,107,90,0.6)] self-center mt-2 tracking-widest w-full md:w-auto whitespace-nowrap">
-                    [ Giam tội phạm ]
-                </button>
+                <div class="flex flex-row gap-3 w-full md:w-auto self-center mt-2">
+                    <button type="submit" id="submitBtn" class="bg-[#e46b5a] text-[#111] font-bold pixel-text text-lg md:text-2xl px-4 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-[#ff7b6a] transition-all transform active:scale-90 shadow-[0_0_25px_rgba(228,107,90,0.6)] tracking-widest whitespace-nowrap flex-1 md:flex-none">
+                        [ Giam tội phạm ]
+                    </button>
+                    <button type="button" id="cancelEditBtn" class="hidden bg-gray-500 text-white font-bold pixel-text text-lg md:text-2xl px-4 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-gray-600 transition-all transform active:scale-90 shadow-[0_0_25px_rgba(107,114,128,0.6)] tracking-widest whitespace-nowrap flex-1 md:flex-none">
+                        [ Hủy ]
+                    </button>
+                </div>
             </form>
         </section>
-
+        <!-- [PHẦN 2] -->
         <section class="mb-10">
-            <div class="glass-panel p-4 md:p-6 rounded-3xl">
+            <div class="glass-panel p-4 md:p-6 rounded-3xl overflow-hidden">
                 <h3 class="font-bold text-[#fdfae2] mb-5 text-base md:text-lg flex items-center gap-2">
                     <span>⛓️ Danh sách đánh đập tội phạm ( kéo thả tên vào để đổi ưu tiên bị đập )</span>
                 </h3>
                 
                 <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4 flex flex-col justify-center">
+                    <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4 flex flex-col justify-center overflow-x-auto">
                         <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
-                        <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3 items-center"></div>
+                        <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3 items-center min-w-max sm:min-w-0"></div>
                     </div>
 
                     <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
-                        <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="high" onclick="togglePriorityFilter('high')">
+                        <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg cursor-pointer" data-priority="high" onclick="togglePriorityFilter('high')">
                             <span>🔴 hai</span>
                         </div>
-                        <div class="drop-zone bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="medium" onclick="togglePriorityFilter('medium')">
+                        <div class="drop-zone bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg cursor-pointer" data-priority="medium" onclick="togglePriorityFilter('medium')">
                             <span>🟡 mít</span>
                         </div>
-                        <div class="drop-zone bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg" data-priority="low" onclick="togglePriorityFilter('low')">
+                        <div class="drop-zone bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg cursor-pointer" data-priority="low" onclick="togglePriorityFilter('low')">
                             <span>🟢 low cortisol</span>
                         </div>
                     </div>
@@ -363,7 +370,7 @@
             </div>
 
             <!-- BẢNG NHÀ TÙ BAO BỌC GRID -->
-            <div class="prison-board mt-8 mb-16">
+            <div class="prison-board mt-8 mb-16 overflow-x-auto custom-scrollbar">
                 <!-- Chốt kim loại 4 góc -->
                 <div class="bolt top-left"></div>
                 <div class="bolt top-right"></div>
@@ -379,10 +386,10 @@
         </section>
     </div>
 
-    <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center">
-        <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base whitespace-nowrap"></span>
-        <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm whitespace-nowrap"></button>
-        <button onclick="bulkRestore()" id="bulkRestoreBtn" class="hidden bg-[#8da47e] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#9eb88f] transition-all text-xs md:text-sm whitespace-nowrap">THA TỘI</button>
+    <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center overflow-x-auto max-w-[90vw] whitespace-nowrap">
+        <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base"></span>
+        <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm"></button>
+        <button onclick="bulkRestore()" id="bulkRestoreBtn" class="hidden bg-[#8da47e] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#9eb88f] transition-all text-xs md:text-sm">THA TỘI</button>
         <button onclick="clearSelection()" class="text-gray-400 hover:text-white px-2 font-bold pixel-text text-xs md:text-sm">HỦY</button>
     </div>
 
@@ -410,10 +417,14 @@
         animateCursorTrail();
         // ===================================
 
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let audioCtx = null;
         
         function playSound(type) {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
             if (audioCtx.state === 'suspended') audioCtx.resume();
+            
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
@@ -542,6 +553,7 @@
         const filterContainer = document.getElementById('filterContainer');
         const emptyState = document.getElementById('emptyState');
         const submitBtn = document.getElementById('submitBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
         const progressContainer = document.getElementById('progressContainer');
 
         const priorityScore = { 'high': 3, 'medium': 2, 'low': 1 };
@@ -592,6 +604,7 @@
             
             if (selectedIds.size > 0) {
                 bar.classList.remove('hidden');
+                bar.classList.add('flex');
                 count.innerText = `ĐÃ CHỌN: ${selectedIds.size}`;
                 if (isTrashView) {
                     btn.innerText = 'XÓA VĨNH VIỄN';
@@ -602,6 +615,7 @@
                 }
             } else {
                 bar.classList.add('hidden');
+                bar.classList.remove('flex');
             }
         }
 
@@ -633,13 +647,29 @@
             clearSelection();
         }
 
+        cancelEditBtn.addEventListener('click', () => {
+            editingId = null;
+            form.reset();
+            submitBtn.innerText = '[ Giam tội phạm ]';
+            cancelEditBtn.classList.add('hidden');
+            document.getElementById('priorityInput').value = 'medium';
+            const defaultOption = document.querySelector(`.custom-option[data-value="medium"]`);
+            document.getElementById('customSelectValue').innerHTML = defaultOption.innerHTML;
+            document.getElementById('customSelectValue').className = `text-[#eab308] truncate`;
+        });
+
         form.addEventListener('submit', function(e) {
             e.preventDefault();
             
+            let linkVal = document.getElementById('linkInput').value.trim();
+            if (linkVal && !/^https?:\/\//i.test(linkVal)) {
+                linkVal = 'https://' + linkVal;
+            }
+
             if (editingId) {
                 const index = videos.findIndex(v => v.id === editingId);
                 if (index !== -1) {
-                    videos[index].link = document.getElementById('linkInput').value;
+                    videos[index].link = linkVal;
                     videos[index].title = document.getElementById('titleInput').value;
                     videos[index].category = document.getElementById('categoryInput').value.trim();
                     videos[index].priority = document.getElementById('priorityInput').value;
@@ -647,10 +677,11 @@
                 }
                 editingId = null;
                 submitBtn.innerText = '[ Giam tội phạm ]';
+                cancelEditBtn.classList.add('hidden');
             } else {
                 const newVideo = {
                     id: Date.now().toString(),
-                    link: document.getElementById('linkInput').value,
+                    link: linkVal,
                     title: document.getElementById('titleInput').value,
                     category: document.getElementById('categoryInput').value.trim(),
                     priority: document.getElementById('priorityInput').value,
@@ -693,6 +724,7 @@
             }
 
             submitBtn.innerText = '[ Cập nhật tội phạm ]';
+            cancelEditBtn.classList.remove('hidden');
             window.scrollTo({ top: 0, behavior: 'smooth' });
             playSound('click');
         }
@@ -838,21 +870,18 @@
 
             // THUẬT TOÁN SẮP XẾP CHUYÊN GIA 4 LỚP KHOA HỌC
             filteredVideos.sort((a, b) => {
-                // Lớp 1: Đã hoàn thành thì cho chìm xuống cuối
                 if (a.completed !== b.completed) return a.completed ? 1 : -1;
                 
-                // Lớp 2: Ưu tiên (Đỏ > Vàng > Xanh)
                 if (priorityScore[b.priority] !== priorityScore[a.priority]) {
                     return priorityScore[b.priority] - priorityScore[a.priority];
                 }
                 
-                // Lớp 3: Cùng ưu tiên thì xếp theo Chủ Đề (Category) cho gọn gàng
                 if (a.category !== b.category) {
                     return a.category.localeCompare(b.category);
                 }
                 
-                // Lớp 4: Cùng chủ đề thì mới nhất xếp trước
-                return b.id - a.id;
+                // Fix: Ép kiểu Number để tính toán đúng
+                return Number(b.id) - Number(a.id);
             });
 
             if (filteredVideos.length === 0) {
@@ -931,8 +960,9 @@
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
-                    // === VẬT LÝ TỌA ĐỘ TUYỆT ĐỐI (PAGE X/Y) - VƯỢT GIỚI HẠN SCROLL ===
+                    // === VẬT LÝ TỌA ĐỘ TUYỆT ĐỐI (PAGE X/Y) CÓ DELAY CHỐNG LỖI SCROLL MOBILE ===
                     let isDragging = false;
+                    let dragTimeout = null;
                     let startX = 0, startY = 0;
                     let centerX = 0, centerY = 0;
                     let targetX = 0, targetY = 0;
@@ -945,131 +975,143 @@
                     const startCustomDrag = (e) => {
                         if (e.type === 'mousedown' && e.button !== 0) return;
                         if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
-                        if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input')) return;
+                        if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('label')) return;
 
-                        window.getSelection().removeAllRanges();
-                        document.body.classList.add('select-none');
-
-                        isDragging = true;
+                        clearTimeout(dragTimeout);
                         
-                        // SỬ DỤNG TỌA ĐỘ TUYỆT ĐỐI CỦA DOCUMENT ĐỂ KHÔNG BỊ GIỚI HẠN
-                        const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-                        const pageY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
-                        
-                        startX = pageX;
-                        startY = pageY;
+                        // Hàm khởi tạo kéo
+                        const initDrag = () => {
+                            window.getSelection().removeAllRanges();
+                            document.body.classList.add('select-none');
 
-                        // Xác định tâm thẻ dựa trên tọa độ tuyệt đối
-                        const rect = card.getBoundingClientRect();
-                        centerX = rect.left + window.scrollX + rect.width / 2;
-                        centerY = rect.top + window.scrollY + rect.height / 2;
-                        
-                        const clickOffsetX = centerX - startX;
-                        const clickOffsetY = centerY - startY;
-                        targetX = clickOffsetX;
-                        targetY = clickOffsetY;
-
-                        prevMouseAngle = Math.atan2(pageY - centerY, pageX - centerX);
-
-                        card.style.willChange = 'transform';
-                        card.style.transition = 'none';
-                        card.style.zIndex = '999';
-                        card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
-                        card.classList.remove('hover-spring'); 
-
-                        otherCards = [];
-                        document.querySelectorAll('.paper-card').forEach(other => {
-                            if (other === card) return;
-                            const oRect = other.getBoundingClientRect();
-                            let cx = oRect.left + window.scrollX + oRect.width / 2;
-                            let cy = oRect.top + window.scrollY + oRect.height / 2;
+                            isDragging = true;
                             
-                            let curOx = parseFloat(other.dataset.offsetX || '0');
-                            let curOy = parseFloat(other.dataset.offsetY || '0');
+                            const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
+                            const pageY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
                             
-                            otherCards.push({
-                                el: other,
-                                baseCX: cx - curOx,
-                                baseCY: cy - curOy,
-                                origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0'),
-                                targetOx: curOx,
-                                targetOy: curOy,
-                                curOx: curOx,
-                                curOy: curOy
+                            startX = pageX;
+                            startY = pageY;
+
+                            const rect = card.getBoundingClientRect();
+                            centerX = rect.left + window.scrollX + rect.width / 2;
+                            centerY = rect.top + window.scrollY + rect.height / 2;
+                            
+                            const clickOffsetX = centerX - startX;
+                            const clickOffsetY = centerY - startY;
+                            targetX = clickOffsetX;
+                            targetY = clickOffsetY;
+
+                            prevMouseAngle = Math.atan2(pageY - centerY, pageX - centerX);
+
+                            card.style.willChange = 'transform';
+                            card.style.transition = 'none';
+                            card.style.zIndex = '999';
+                            card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
+                            card.classList.remove('hover-spring'); 
+
+                            otherCards = [];
+                            document.querySelectorAll('.paper-card').forEach(other => {
+                                if (other === card) return;
+                                const oRect = other.getBoundingClientRect();
+                                let cx = oRect.left + window.scrollX + oRect.width / 2;
+                                let cy = oRect.top + window.scrollY + oRect.height / 2;
+                                
+                                let curOx = parseFloat(other.dataset.offsetX || '0');
+                                let curOy = parseFloat(other.dataset.offsetY || '0');
+                                
+                                otherCards.push({
+                                    el: other,
+                                    baseCX: cx - curOx,
+                                    baseCY: cy - curOy,
+                                    origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0'),
+                                    targetOx: curOx,
+                                    targetOy: curOy,
+                                    curOx: curOx,
+                                    curOy: curOy
+                                });
+                                
+                                other.style.willChange = 'transform';
+                                other.style.transition = 'none'; 
                             });
-                            
-                            other.style.willChange = 'transform';
-                            other.style.transition = 'none'; 
-                        });
 
-                        const updateLoop = () => {
-                            if (!isDragging) return;
-                            
-                            currentX += (targetX - currentX) * 0.5;
-                            currentY += (targetY - currentY) * 0.5;
-                            
-                            const dragCX = centerX + currentX;
-                            const dragCY = centerY + currentY;
-
-                            const currentMouseX = startX + targetX - clickOffsetX;
-                            const currentMouseY = startY + targetY - clickOffsetY;
-                            const mouseDist = Math.sqrt((currentMouseX - dragCX)**2 + (currentMouseY - dragCY)**2);
-                            
-                            if (mouseDist > 5) {
-                                const mouseAngle = Math.atan2(currentMouseY - dragCY, currentMouseX - dragCX);
-                                let deltaAngle = mouseAngle - prevMouseAngle;
-                                if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
-                                if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
+                            const updateLoop = () => {
+                                if (!isDragging) return;
                                 
-                                currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.2;
-                                prevMouseAngle = mouseAngle;
-                            }
-
-                            card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
-                            
-                            otherCards.forEach(other => {
-                                let tOx = other.targetOx;
-                                let tOy = other.targetOy;
+                                currentX += (targetX - currentX) * 0.5;
+                                currentY += (targetY - currentY) * 0.5;
                                 
-                                const dx = (other.baseCX + tOx) - dragCX;
-                                const dy = (other.baseCY + tOy) - dragCY;
-                                const dist = Math.sqrt(dx*dx + dy*dy);
-                                const repelRadius = 320; 
+                                const dragCX = centerX + currentX;
+                                const dragCY = centerY + currentY;
 
-                                if (dist < repelRadius && dist > 1) {
-                                    const overlap = repelRadius - dist;
-                                    const force = overlap * 0.15; 
-                                    tOx += (dx / dist) * force;
-                                    tOy += (dy / dist) * force;
+                                const currentMouseX = startX + targetX - clickOffsetX;
+                                const currentMouseY = startY + targetY - clickOffsetY;
+                                const mouseDist = Math.sqrt((currentMouseX - dragCX)**2 + (currentMouseY - dragCY)**2);
+                                
+                                if (mouseDist > 5) {
+                                    const mouseAngle = Math.atan2(currentMouseY - dragCY, currentMouseX - dragCX);
+                                    let deltaAngle = mouseAngle - prevMouseAngle;
+                                    if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
+                                    if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
+                                    
+                                    currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.2;
+                                    prevMouseAngle = mouseAngle;
                                 }
 
-                                other.curOx += (tOx - other.curOx) * 0.2;
-                                other.curOy += (tOy - other.curOy) * 0.2;
+                                card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
                                 
-                                other.targetOx = tOx;
-                                other.targetOy = tOy;
+                                otherCards.forEach(other => {
+                                    let tOx = other.targetOx;
+                                    let tOy = other.targetOy;
+                                    
+                                    const dx = (other.baseCX + tOx) - dragCX;
+                                    const dy = (other.baseCY + tOy) - dragCY;
+                                    const dist = Math.sqrt(dx*dx + dy*dy);
+                                    const repelRadius = 320; 
 
-                                other.el.dataset.offsetX = other.curOx;
-                                other.el.dataset.offsetY = other.curOy;
-                                other.el.style.transform = `translate3d(${other.curOx}px, ${other.curOy}px, 0) rotate(${other.origRotate}deg)`;
-                            });
+                                    if (dist < repelRadius && dist > 1) {
+                                        const overlap = repelRadius - dist;
+                                        const force = overlap * 0.15; 
+                                        tOx += (dx / dist) * force;
+                                        tOy += (dy / dist) * force;
+                                    }
 
+                                    other.curOx += (tOx - other.curOx) * 0.2;
+                                    other.curOy += (tOy - other.curOy) * 0.2;
+                                    
+                                    other.targetOx = tOx;
+                                    other.targetOy = tOy;
+
+                                    other.el.dataset.offsetX = other.curOx;
+                                    other.el.dataset.offsetY = other.curOy;
+                                    other.el.style.transform = `translate3d(${other.curOx}px, ${other.curOy}px, 0) rotate(${other.origRotate}deg)`;
+                                });
+
+                                rAF_ID = requestAnimationFrame(updateLoop);
+                            };
                             rAF_ID = requestAnimationFrame(updateLoop);
                         };
-                        rAF_ID = requestAnimationFrame(updateLoop);
+
+                        // 300ms delay for touch (cho phép cuộn), 0ms cho click chuột
+                        if (e.type.includes('touch')) {
+                            dragTimeout = setTimeout(initDrag, 300);
+                        } else {
+                            initDrag();
+                        }
 
                         const moveDrag = (ev) => {
-                            if (!isDragging) return;
-                            ev.preventDefault();
+                            if (!isDragging) {
+                                // Nếu vuốt ngang dọc trước 300ms, hủy drag -> cho phép cuộn trang
+                                clearTimeout(dragTimeout);
+                                return;
+                            }
+                            ev.preventDefault(); // Chặn cuộn nếu đang Drag
 
-                            // SỬ DỤNG TỌA ĐỘ PAGE ĐỂ KHÔNG BỊ LỖI KHI KÉO XUỐNG
                             const pX = ev.type.includes('mouse') ? ev.pageX : ev.touches[0].pageX;
                             const pY = ev.type.includes('mouse') ? ev.pageY : ev.touches[0].pageY;
                             
-                            targetX = (pX - startX) + clickOffsetX;
-                            targetY = (pY - startY) + clickOffsetY;
+                            targetX = (pX - startX) + (centerX - startX);
+                            targetY = (pY - startY) + (centerY - startY);
 
-                            // DROPZONE DÙNG VIEWPORT COORDS (clientX/clientY)
                             const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
                             const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
 
@@ -1084,6 +1126,7 @@
                         };
 
                         const stopDrag = (ev) => {
+                            clearTimeout(dragTimeout);
                             if (!isDragging) return;
                             isDragging = false;
                             cancelAnimationFrame(rAF_ID);
@@ -1093,6 +1136,7 @@
                             document.removeEventListener('mouseup', stopDrag);
                             document.removeEventListener('touchmove', moveDrag);
                             document.removeEventListener('touchend', stopDrag);
+                            document.removeEventListener('mouseleave', stopDrag);
 
                             card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
                             card.classList.add('hover-spring');
@@ -1184,10 +1228,11 @@
                         document.addEventListener('mouseup', stopDrag);
                         document.addEventListener('touchmove', moveDrag, {passive: false});
                         document.addEventListener('touchend', stopDrag);
+                        document.addEventListener('mouseleave', stopDrag);
                     };
 
                     card.addEventListener('mousedown', startCustomDrag);
-                    card.addEventListener('touchstart', startCustomDrag, {passive: false});
+                    card.addEventListener('touchstart', startCustomDrag, {passive: true});
                     // ==========================================================
 
                     let domain = '';
