@@ -156,65 +156,6 @@
         .priority-medium { border-top: 8px solid #eab308; }
         .priority-low { border-top: 8px solid #8da47e; }
 
-        /* ================= SPOTLIGHT GLOW EFFECT ================= */
-        [data-glow] {
-            --border-size: 2;
-            --spotlight-size: 300;
-            --hue: calc(var(--base, 210) + (var(--xp, 0) * var(--spread, 0)));
-        }
-        
-        [data-glow]::before,
-        [data-glow]::after {
-            pointer-events: none;
-            content: "";
-            position: absolute;
-            inset: calc(var(--border-size) * -1px);
-            border: calc(var(--border-size) * 1px) solid transparent;
-            border-radius: 8px; /* Slightly larger than card */
-            background-attachment: fixed;
-            background-size: calc(100% + (2px * var(--border-size))) calc(100% + (2px * var(--border-size)));
-            background-repeat: no-repeat;
-            background-position: 50% 50%;
-            mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
-            mask-clip: padding-box, border-box;
-            mask-composite: intersect;
-            -webkit-mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
-            -webkit-mask-clip: padding-box, border-box;
-            -webkit-mask-composite: xor;
-            z-index: 1;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-
-        .prison-board:hover [data-glow]::before,
-        .prison-board:hover [data-glow]::after {
-            opacity: 1;
-        }
-        
-        [data-glow]::before {
-            background-image: radial-gradient(
-                calc(var(--spotlight-size) * 0.75px) calc(var(--spotlight-size) * 0.75px) at
-                calc(var(--x, 0) * 1px)
-                calc(var(--y, 0) * 1px),
-                hsl(var(--hue, 210) 90% 60% / 1), transparent 100%
-            );
-            filter: brightness(1.5);
-        }
-        
-        [data-glow]::after {
-            background-image: radial-gradient(
-                calc(var(--spotlight-size) * 0.4px) calc(var(--spotlight-size) * 0.4px) at
-                calc(var(--x, 0) * 1px)
-                calc(var(--y, 0) * 1px),
-                hsl(0 100% 100% / 0.8), transparent 100%
-            );
-        }
-
-        .paper-card > * {
-            position: relative;
-            z-index: 2;
-        }
-
         .washi-tape {
             position: absolute;
             top: -14px;
@@ -548,22 +489,6 @@
         animateCursorTrail();
         // ===================================
 
-        // === HỆ THỐNG SPOTLIGHT (GLOW EFFECT) ===
-        document.addEventListener('pointermove', (e) => {
-            const x = e.clientX;
-            const y = e.clientY;
-            const xp = (x / window.innerWidth).toFixed(2);
-            const yp = (y / window.innerHeight).toFixed(2);
-            
-            document.querySelectorAll('.paper-card[data-glow]').forEach(card => {
-                card.style.setProperty('--x', x.toFixed(2));
-                card.style.setProperty('--xp', xp);
-                card.style.setProperty('--y', y.toFixed(2));
-                card.style.setProperty('--yp', yp);
-            });
-        });
-        // ========================================
-
         let audioCtx = null;
         
         function playSound(type) {
@@ -775,11 +700,6 @@
         window.bulkAction = function() {
             if (isTrashView) {
                 videos = videos.filter(v => !selectedIds.has(v.id));
-                let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
-                selectedIds.forEach(id => {
-                    if(savedContents[id]) delete savedContents[id];
-                });
-                localStorage.setItem('savedContents', JSON.stringify(savedContents));
             } else {
                 videos.forEach(v => {
                     if (selectedIds.has(v.id)) v.isDeleted = true;
@@ -799,67 +719,49 @@
             clearSelection();
         }
         
+        // TÍNH NĂNG LƯU NHANH BẰNG CÁCH TẢI FILE TXT XUỐNG MÁY
         window.toggleSave = function(e, id) {
             e.stopPropagation();
-            const btn = e.currentTarget;
-            const index = videos.findIndex(v => v.id === id);
+            const video = videos.find(v => v.id === id);
             
-            if (index !== -1) {
-                videos[index].isSaved = !videos[index].isSaved;
+            if (video) {
+                playSound('success');
                 
-                // Lưu nội dung của mục
-                let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
-                if (videos[index].isSaved) {
-                    savedContents[id] = { title: videos[index].title, note: videos[index].note };
-                } else {
-                    delete savedContents[id];
-                }
-                localStorage.setItem('savedContents', JSON.stringify(savedContents));
+                // Tạo nội dung file
+                const content = `[HỒ SƠ TỘI PHẠM]\n` +
+                                `=======================\n` +
+                                `Tiêu đề: ${video.title}\n` +
+                                `Chủ đề: ${video.category}\n` +
+                                `Mức độ: ${video.priority}\n` +
+                                `Ghi chú:\n${video.note}\n` +
+                                `=======================\n` +
+                                `Link gốc: ${video.link}\n` +
+                                `Ngày lập hồ sơ: ${video.date}\n` +
+                                `Trạng thái: ${video.completed ? 'Đã xử lý' : 'Chưa xử lý'}`;
                 
-                saveToLocalStorage();
+                // Tạo Blob và tải xuống
+                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `Ho_So_${video.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)}.txt`;
+                document.body.appendChild(a);
+                a.click();
                 
-                if (videos[index].isSaved) {
-                    btn.classList.add('is-saved');
-                    btn.classList.remove('animate-burst');
-                    void btn.offsetWidth;
-                    btn.classList.add('animate-burst');
-                    
-                    const container = btn.querySelector('.bookmark-icon-container');
-                    for (let i = 0; i < 5; i++) {
-                        const particle = document.createElement('div');
-                        particle.className = 'bookmark-particle';
-                        const size = 4 + Math.random() * 2;
-                        particle.style.width = `${size}px`;
-                        particle.style.height = `${size}px`;
-                        
-                        const angle = (i / 5) * (2 * Math.PI);
-                        const radius = 18 + Math.random() * 8;
-                        const destX = Math.cos(angle) * radius;
-                        const destY = Math.sin(angle) * radius * 0.75;
-                        const destScale = 0.8 + Math.random() * 0.4;
-                        const duration = 600 + Math.random() * 100;
-                        const delay = i * 40;
-                        
-                        particle.animate([
-                            { transform: `translate(-50%, -50%) scale(0)`, opacity: 0.3, offset: 0 },
-                            { transform: `translate(calc(-50% + ${destX}px), calc(-50% + ${destY}px)) scale(${destScale})`, opacity: 0.8, offset: 0.5 },
-                            { transform: `translate(calc(-50% + ${destX}px), calc(-50% + ${destY}px)) scale(0)`, opacity: 0, offset: 1 }
-                        ], {
-                            duration: duration,
-                            delay: delay,
-                            easing: 'ease-out',
-                            fill: 'forwards'
-                        });
-                        
-                        container.appendChild(particle);
-                        setTimeout(() => particle.remove(), duration + delay);
-                    }
-                    playSound('success');
-                } else {
-                    btn.classList.remove('is-saved');
-                    btn.classList.remove('animate-burst');
-                    playSound('type');
-                }
+                // Dọn dẹp
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }, 100);
+                
+                // Hiệu ứng nháy nút để báo hiệu thành công
+                const btn = e.currentTarget;
+                btn.style.transform = 'scale(1.5)';
+                btn.style.color = '#3b82f6';
+                setTimeout(() => {
+                    btn.style.transform = '';
+                    btn.style.color = '';
+                }, 300);
             }
         }
 
@@ -890,13 +792,6 @@
                     videos[index].category = document.getElementById('categoryInput').value.trim();
                     videos[index].priority = document.getElementById('priorityInput').value;
                     videos[index].note = document.getElementById('noteInput').value.trim() || "trống thía...";
-
-                    // Nếu mục đang được lưu, cập nhật lại nội dung lưu
-                    if (videos[index].isSaved) {
-                        let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
-                        savedContents[editingId] = { title: videos[index].title, note: videos[index].note };
-                        localStorage.setItem('savedContents', JSON.stringify(savedContents));
-                    }
                 }
                 editingId = null;
                 submitBtn.innerText = '[ Giam tội phạm ]';
@@ -911,7 +806,6 @@
                     note: document.getElementById('noteInput').value.trim() || "trống thía...",
                     completed: false, 
                     isDeleted: false,
-                    isSaved: false,
                     date: new Date().toLocaleDateString('vi-VN')
                 };
                 videos.push(newVideo);
@@ -956,11 +850,6 @@
         function deleteVideo(id) {
             if (isTrashView) {
                 videos = videos.filter(v => v.id !== id);
-                let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
-                if(savedContents[id]) {
-                    delete savedContents[id];
-                    localStorage.setItem('savedContents', JSON.stringify(savedContents));
-                }
             } else {
                 const index = videos.findIndex(v => v.id === id);
                 if (index !== -1) videos[index].isDeleted = true;
@@ -1185,12 +1074,6 @@
                     const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
                     card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
                     
-                    // Spotlight Base Colors setup based on priority
-                    const baseColors = { 'high': 0, 'medium': 30, 'low': 120 };
-                    card.setAttribute('data-glow', '');
-                    card.style.setProperty('--base', baseColors[video.priority] || 210);
-                    card.style.setProperty('--spread', 200);
-
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
@@ -1510,22 +1393,15 @@
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
-                            <button type="button" onclick="toggleSave(event, '${video.id}')" class="bookmark-btn p-1 ml-1 ${video.isSaved ? 'is-saved' : ''}" title="Lưu nội dung mục">
-                                <div class="bookmark-icon-container w-6 h-6">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="bookmark-outline absolute inset-0 w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                                    </svg>
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="bookmark-filled absolute inset-0 w-6 h-6" viewBox="0 0 24 24" fill="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                                    </svg>
-                                    <div class="bookmark-burst"></div>
-                                </div>
+                            <button type="button" onclick="toggleSave(event, '${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Tải xuống File Ghi Chú (.txt)">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                </svg>
                             </button>
                         `;
                     }
 
                     card.innerHTML = `
-                        <div data-glow></div>
                         ${checkboxHtml}
                         <div class="washi-tape" style="background-color: ${tapeColors[video.priority]}; transform: translateX(-50%) rotate(${Math.random() * 4 - 2}deg)"></div>
                         
