@@ -156,6 +156,65 @@
         .priority-medium { border-top: 8px solid #eab308; }
         .priority-low { border-top: 8px solid #8da47e; }
 
+        /* ================= SPOTLIGHT GLOW EFFECT ================= */
+        [data-glow] {
+            --border-size: 2;
+            --spotlight-size: 300;
+            --hue: calc(var(--base, 210) + (var(--xp, 0) * var(--spread, 0)));
+        }
+        
+        [data-glow]::before,
+        [data-glow]::after {
+            pointer-events: none;
+            content: "";
+            position: absolute;
+            inset: calc(var(--border-size) * -1px);
+            border: calc(var(--border-size) * 1px) solid transparent;
+            border-radius: 8px; /* Slightly larger than card */
+            background-attachment: fixed;
+            background-size: calc(100% + (2px * var(--border-size))) calc(100% + (2px * var(--border-size)));
+            background-repeat: no-repeat;
+            background-position: 50% 50%;
+            mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+            mask-clip: padding-box, border-box;
+            mask-composite: intersect;
+            -webkit-mask: linear-gradient(transparent, transparent), linear-gradient(white, white);
+            -webkit-mask-clip: padding-box, border-box;
+            -webkit-mask-composite: xor;
+            z-index: 1;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .prison-board:hover [data-glow]::before,
+        .prison-board:hover [data-glow]::after {
+            opacity: 1;
+        }
+        
+        [data-glow]::before {
+            background-image: radial-gradient(
+                calc(var(--spotlight-size) * 0.75px) calc(var(--spotlight-size) * 0.75px) at
+                calc(var(--x, 0) * 1px)
+                calc(var(--y, 0) * 1px),
+                hsl(var(--hue, 210) 90% 60% / 1), transparent 100%
+            );
+            filter: brightness(1.5);
+        }
+        
+        [data-glow]::after {
+            background-image: radial-gradient(
+                calc(var(--spotlight-size) * 0.4px) calc(var(--spotlight-size) * 0.4px) at
+                calc(var(--x, 0) * 1px)
+                calc(var(--y, 0) * 1px),
+                hsl(0 100% 100% / 0.8), transparent 100%
+            );
+        }
+
+        .paper-card > * {
+            position: relative;
+            z-index: 2;
+        }
+
         .washi-tape {
             position: absolute;
             top: -14px;
@@ -489,6 +548,22 @@
         animateCursorTrail();
         // ===================================
 
+        // === HỆ THỐNG SPOTLIGHT (GLOW EFFECT) ===
+        document.addEventListener('pointermove', (e) => {
+            const x = e.clientX;
+            const y = e.clientY;
+            const xp = (x / window.innerWidth).toFixed(2);
+            const yp = (y / window.innerHeight).toFixed(2);
+            
+            document.querySelectorAll('.paper-card[data-glow]').forEach(card => {
+                card.style.setProperty('--x', x.toFixed(2));
+                card.style.setProperty('--xp', xp);
+                card.style.setProperty('--y', y.toFixed(2));
+                card.style.setProperty('--yp', yp);
+            });
+        });
+        // ========================================
+
         let audioCtx = null;
         
         function playSound(type) {
@@ -700,6 +775,11 @@
         window.bulkAction = function() {
             if (isTrashView) {
                 videos = videos.filter(v => !selectedIds.has(v.id));
+                let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
+                selectedIds.forEach(id => {
+                    if(savedContents[id]) delete savedContents[id];
+                });
+                localStorage.setItem('savedContents', JSON.stringify(savedContents));
             } else {
                 videos.forEach(v => {
                     if (selectedIds.has(v.id)) v.isDeleted = true;
@@ -727,7 +807,7 @@
             if (index !== -1) {
                 videos[index].isSaved = !videos[index].isSaved;
                 
-                // Chỉ lưu nội dung của mục (Title và Note) vào 1 collection khác trong LocalStorage
+                // Lưu nội dung của mục
                 let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
                 if (videos[index].isSaved) {
                     savedContents[id] = { title: videos[index].title, note: videos[index].note };
@@ -741,16 +821,13 @@
                 if (videos[index].isSaved) {
                     btn.classList.add('is-saved');
                     btn.classList.remove('animate-burst');
-                    void btn.offsetWidth; // Trigger reflow to restart animation
+                    void btn.offsetWidth;
                     btn.classList.add('animate-burst');
                     
                     const container = btn.querySelector('.bookmark-icon-container');
-                    
-                    // Create Framer-motion like particles with Vanilla JS
                     for (let i = 0; i < 5; i++) {
                         const particle = document.createElement('div');
                         particle.className = 'bookmark-particle';
-                        
                         const size = 4 + Math.random() * 2;
                         particle.style.width = `${size}px`;
                         particle.style.height = `${size}px`;
@@ -785,6 +862,7 @@
                 }
             }
         }
+
         cancelEditBtn.addEventListener('click', () => {
             editingId = null;
             form.reset();
@@ -812,6 +890,13 @@
                     videos[index].category = document.getElementById('categoryInput').value.trim();
                     videos[index].priority = document.getElementById('priorityInput').value;
                     videos[index].note = document.getElementById('noteInput').value.trim() || "trống thía...";
+
+                    // Nếu mục đang được lưu, cập nhật lại nội dung lưu
+                    if (videos[index].isSaved) {
+                        let savedContents = JSON.parse(localStorage.getItem('savedContents')) || {};
+                        savedContents[editingId] = { title: videos[index].title, note: videos[index].note };
+                        localStorage.setItem('savedContents', JSON.stringify(savedContents));
+                    }
                 }
                 editingId = null;
                 submitBtn.innerText = '[ Giam tội phạm ]';
@@ -1100,6 +1185,12 @@
                     const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
                     card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
                     
+                    // Spotlight Base Colors setup based on priority
+                    const baseColors = { 'high': 0, 'medium': 30, 'low': 120 };
+                    card.setAttribute('data-glow', '');
+                    card.style.setProperty('--base', baseColors[video.priority] || 210);
+                    card.style.setProperty('--spread', 200);
+
                     card.setAttribute('data-orig-rotate', rotate);
                     card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
 
@@ -1434,6 +1525,7 @@
                     }
 
                     card.innerHTML = `
+                        <div data-glow></div>
                         ${checkboxHtml}
                         <div class="washi-tape" style="background-color: ${tapeColors[video.priority]}; transform: translateX(-50%) rotate(${Math.random() * 4 - 2}deg)"></div>
                         
