@@ -266,78 +266,6 @@
         .bolt.bottom-left { bottom: 16px; left: 16px; }
         .bolt.bottom-right { bottom: 16px; right: 16px; }
 
-        /* ================= NÚT LƯU BOOKMARK ANIMATION ================= */
-        .bookmark-btn {
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 50%;
-            transition: background-color 0.2s;
-            cursor: pointer;
-        }
-        .bookmark-btn:hover {
-            background-color: rgba(156, 163, 175, 0.2);
-        }
-        .bookmark-icon-container {
-            position: relative;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .bookmark-btn:active .bookmark-icon-container {
-            transform: scale(0.85) rotate(-10deg);
-        }
-        .bookmark-btn.is-saved .bookmark-icon-container {
-            transform: scale(1.1);
-        }
-        .bookmark-outline {
-            opacity: 0.6;
-            transition: opacity 0.3s;
-        }
-        .bookmark-btn.is-saved .bookmark-outline {
-            opacity: 0;
-        }
-        .bookmark-filled {
-            position: absolute;
-            inset: 0;
-            color: #3b82f6;
-            fill: #3b82f6;
-            opacity: 0;
-            transition: opacity 0.3s, transform 0.3s;
-        }
-        .bookmark-btn.is-saved .bookmark-filled {
-            opacity: 1;
-        }
-        .bookmark-burst {
-            position: absolute;
-            inset: -8px;
-            border-radius: 50%;
-            background: radial-gradient(circle, rgba(59,130,246,0.4) 0%, rgba(59,130,246,0) 80%);
-            opacity: 0;
-            pointer-events: none;
-        }
-        @keyframes burst-animation {
-            0% { transform: scale(0); opacity: 0; }
-            50% { transform: scale(1.4); opacity: 0.4; }
-            100% { transform: scale(1); opacity: 0; }
-        }
-        .bookmark-btn.is-saved.animate-burst .bookmark-burst {
-            animation: burst-animation 0.7s ease-out forwards;
-        }
-        .bookmark-particle {
-            position: absolute;
-            border-radius: 50%;
-            background-color: #3b82f6;
-            filter: blur(1px);
-            pointer-events: none;
-            opacity: 0;
-            z-index: 10;
-        }
-
     </style></head><body class="p-4 md:p-12 relative min-h-screen">
     
     <!-- CUSTOM CURSOR DOM -->
@@ -719,15 +647,13 @@
             clearSelection();
         }
         
-        // TÍNH NĂNG LƯU NHANH BẰNG CÁCH TẢI FILE TXT XUỐNG MÁY
+        // TÍNH NĂNG LƯU: COPY NỘI DUNG VÀO CLIPBOARD (CTRL+V)
         window.toggleSave = function(e, id) {
             e.stopPropagation();
             const video = videos.find(v => v.id === id);
             
             if (video) {
-                playSound('success');
-                
-                // Tạo nội dung file
+                // Nội dung cần copy
                 const content = `[HỒ SƠ TỘI PHẠM]\n` +
                                 `=======================\n` +
                                 `Tiêu đề: ${video.title}\n` +
@@ -739,29 +665,25 @@
                                 `Ngày lập hồ sơ: ${video.date}\n` +
                                 `Trạng thái: ${video.completed ? 'Đã xử lý' : 'Chưa xử lý'}`;
                 
-                // Tạo Blob và tải xuống
-                const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `Ho_So_${video.title.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20)}.txt`;
-                document.body.appendChild(a);
-                a.click();
-                
-                // Dọn dẹp
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }, 100);
-                
-                // Hiệu ứng nháy nút để báo hiệu thành công
-                const btn = e.currentTarget;
-                btn.style.transform = 'scale(1.5)';
-                btn.style.color = '#3b82f6';
-                setTimeout(() => {
-                    btn.style.transform = '';
-                    btn.style.color = '';
-                }, 300);
+                // Lưu vào Clipboard
+                navigator.clipboard.writeText(content).then(() => {
+                    playSound('success');
+                    const btn = e.currentTarget;
+                    const originalSVG = btn.innerHTML;
+                    
+                    // Đổi icon sang dấu check mark tạm thời
+                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>`;
+                    btn.classList.add('scale-125');
+                    
+                    // Phục hồi lại nút sau 1.5 giây
+                    setTimeout(() => {
+                        btn.innerHTML = originalSVG;
+                        btn.classList.remove('scale-125');
+                    }, 1500);
+                }).catch(err => {
+                    console.error('Không thể copy: ', err);
+                    alert("Trình duyệt không hỗ trợ copy tự động, vui lòng thử lại!");
+                });
             }
         }
 
@@ -1393,9 +1315,9 @@
                                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
-                            <button type="button" onclick="toggleSave(event, '${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Tải xuống File Ghi Chú (.txt)">
+                            <button type="button" onclick="toggleSave(event, '${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Sao chép nội dung mục (Ctrl+C)">
                                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                                 </svg>
                             </button>
                         `;
