@@ -1,4 +1,3 @@
-<!-- [PHẦN 1] -->
 <!DOCTYPE html><html lang="vi"><head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -335,7 +334,7 @@
                 </div>
             </form>
         </section>
-        <!-- [PHẦN 2] -->
+        
         <section class="mb-10">
             <div class="glass-panel p-4 md:p-6 rounded-3xl overflow-hidden">
                 <h3 class="font-bold text-[#fdfae2] mb-5 text-base md:text-lg flex items-center gap-2">
@@ -394,6 +393,16 @@
     </div>
 
     <script>
+        // === HÀM BẢO MẬT XSS ===
+        const escapeHTML = (str) => {
+            if (!str) return '';
+            return str.toString().replace(/[&<>'"]/g, 
+                tag => ({
+                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+                }[tag] || tag)
+            );
+        };
+
         // === HỆ THỐNG CUSTOM CURSOR LOGIC ===
         const magicCursor = document.getElementById('magic-cursor');
         const magicTrail = document.getElementById('magic-cursor-trail');
@@ -409,12 +418,16 @@
         window.addEventListener('mouseup', () => document.body.classList.remove('is-dragging-global'));
 
         function animateCursorTrail() {
-            tX += (mX - tX) * 0.15;
-            tY += (mY - tY) * 0.15;
-            magicTrail.style.transform = `translate3d(${tX}px, ${tY}px, 0) translate(-50%, -50%)`;
+            if (window.matchMedia("(pointer: fine)").matches) {
+                tX += (mX - tX) * 0.15;
+                tY += (mY - tY) * 0.15;
+                magicTrail.style.transform = `translate3d(${tX}px, ${tY}px, 0) translate(-50%, -50%)`;
+            }
             requestAnimationFrame(animateCursorTrail);
         }
-        animateCursorTrail();
+        if (window.matchMedia("(pointer: fine)").matches) {
+            animateCursorTrail();
+        }
         // ===================================
 
         let audioCtx = null;
@@ -423,7 +436,9 @@
             if (!audioCtx) {
                 audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             }
-            if (audioCtx.state === 'suspended') audioCtx.resume();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume().catch(() => { /* Bỏ qua lỗi trình duyệt chặn Autoplay */ });
+            }
             
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
@@ -540,8 +555,17 @@
             }
         });
 
-        let videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
-        let pinnedTopics = JSON.parse(localStorage.getItem('pinnedTopics')) || []; 
+        let videos = [];
+        let pinnedTopics = []; 
+        try {
+            videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
+            pinnedTopics = JSON.parse(localStorage.getItem('pinnedTopics')) || [];
+        } catch (e) {
+            console.error("Dữ liệu hỏng, khởi tạo mới.");
+            localStorage.removeItem('indieVideos');
+            localStorage.removeItem('pinnedTopics');
+        }
+
         let currentFilter = 'All';
         let currentPriorityFilter = 'All'; 
         let isTrashView = false;
@@ -669,16 +693,17 @@
                 navigator.clipboard.writeText(content).then(() => {
                     playSound('success');
                     const btn = e.currentTarget;
-                    const originalSVG = btn.innerHTML;
+                    const originalSVG = btn.dataset.orig || btn.innerHTML;
+                    if (!btn.dataset.orig) btn.dataset.orig = originalSVG;
                     
                     // Đổi icon sang dấu check mark tạm thời
                     btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>`;
-                    btn.classList.add('scale-125');
+                    btn.classList.add('scale-125', 'pointer-events-none');
                     
                     // Phục hồi lại nút sau 1.5 giây
                     setTimeout(() => {
                         btn.innerHTML = originalSVG;
-                        btn.classList.remove('scale-125');
+                        btn.classList.remove('scale-125', 'pointer-events-none');
                     }, 1500);
                 }).catch(err => {
                     console.error('Không thể copy: ', err);
@@ -811,6 +836,10 @@
                 return a.localeCompare(b);
             });
 
+            if (currentFilter !== 'All' && !topics.includes(currentFilter)) {
+                currentFilter = 'All';
+            }
+
             const cats = ['All', ...topics];
             filterContainer.innerHTML = '';
 
@@ -831,7 +860,7 @@
                     const pinHtml = isPinned 
                         ? `<span class="pin-icon ml-1 opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] transition-all duration-500 ease-out cursor-pointer text-base inline-block" title="Bỏ ghim">📌</span>`
                         : `<span class="pin-icon overflow-hidden max-w-0 opacity-0 group-hover:max-w-[24px] group-hover:opacity-70 group-hover:ml-1 hover:!opacity-100 grayscale hover:grayscale-0 transition-all duration-500 ease-out cursor-pointer text-base inline-flex items-center" title="Ghim ưu tiên">📌</span>`;
-                    btn.innerHTML = `<span class="whitespace-nowrap">▤ ${cat}</span>${pinHtml}`;
+                    btn.innerHTML = `<span class="whitespace-nowrap">▤ ${escapeHTML(cat)}</span>${pinHtml}`;
                 }
 
                 btn.onclick = (e) => {
@@ -975,7 +1004,7 @@
                         const pbHtml = `
                             <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800 ${isPinned ? 'ring-1 ring-[#eab308]/50' : ''}">
                                 <div class="flex justify-between items-end pixel-text text-xs md:text-sm mb-2 font-bold relative z-10">
-                                    <span class="tracking-widest ${textColor} truncate mr-2" title="${topic}">${pinIndicator}${topic}: ${percent}%</span>
+                                    <span class="tracking-widest ${textColor} truncate mr-2" title="${escapeHTML(topic)}">${pinIndicator}${escapeHTML(topic)}: ${percent}%</span>
                                     <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} XONG</span>
                                 </div>
                                 <div class="w-full bg-[#0a0a0a] rounded-full h-2 md:h-3 border border-gray-700 shadow-inner overflow-hidden relative z-10">
@@ -1019,9 +1048,14 @@
                         clearTimeout(dragTimeout);
                         
                         const initDrag = () => {
-                            window.getSelection().removeAllRanges();
-                            document.body.classList.add('select-none');
+                            if (isDragging) return;
 
+                            const selection = window.getSelection();
+                            if (selection && selection.rangeCount > 0) {
+                                selection.removeAllRanges();
+                            }
+                            
+                            document.body.classList.add('select-none');
                             isDragging = true;
                             
                             const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
@@ -1330,21 +1364,21 @@
                         <div class="mt-5 pr-8">
                             <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
                                 <span class="bg-[#222] text-[#8da47e] text-xs px-3 py-1.5 rounded pixel-text border border-[#8da47e]/50 font-bold shadow-sm">
-                                    ${video.category}
+                                    ${escapeHTML(video.category)}
                                 </span>
                                 <span class="text-xs font-bold px-2 py-1 bg-white/50 rounded-md border text-gray-800 shadow-sm whitespace-nowrap" title="Mức độ ưu tiên">
                                     ${priorityIcon[video.priority]}
                                 </span>
                             </div>
                             
-                            <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words ${video.completed ? 'line-through decoration-2 decoration-[#e46b5a]/50' : ''}">${video.title}</h3>
+                            <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words ${video.completed ? 'line-through decoration-2 decoration-[#e46b5a]/50' : ''}">${escapeHTML(video.title)}</h3>
                             
                             <a href="${video.link}" target="_blank" class="inline-block text-sm text-[#e46b5a] font-bold hover:text-[#c45242] underline decoration-dashed underline-offset-4 mb-5 break-words line-clamp-2 transition-colors">
                                 ↳ Khám phá: ${domain}
                             </a>
 
                             <div class="bg-black/5 p-4 rounded-xl border border-black/10 mb-4 shadow-inner break-words">
-                                <p class="handwritten whitespace-pre-wrap ${video.completed ? 'line-through decoration-1 decoration-gray-400' : ''}">${video.note}</p>
+                                <p class="handwritten whitespace-pre-wrap ${video.completed ? 'line-through decoration-1 decoration-gray-400' : ''}">${escapeHTML(video.note)}</p>
                             </div>
                         </div>
 
