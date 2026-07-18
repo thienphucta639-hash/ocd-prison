@@ -1,1423 +1,239 @@
-<!DOCTYPE html><html lang="vi"><head>
+<!DOCTYPE html>
+<html lang="vi">
+<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>mồ chôn ocd</title>
+    <title>Interactive Physics</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Mali:wght@400;600&family=Quicksand:wght@400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
     <style>
-        /* ================= VIBE & LAYOUT ================= */
-        body {
-            background-color: #161616;
-            background-image: 
-                radial-gradient(circle at 15% 50%, rgba(141, 164, 126, 0.12) 0%, transparent 55%),
-                radial-gradient(circle at 85% 30%, rgba(228, 107, 90, 0.12) 0%, transparent 55%),
-                radial-gradient(rgba(255, 255, 255, 0.03) 2px, transparent 2px);
-            background-size: 100% 100%, 100% 100%, 30px 30px;
-            font-family: 'Quicksand', sans-serif;
-            overflow-x: hidden;
-            color: #e0d8c0;
-        }
-
-        /* TẮT CON TRỎ MẶC ĐỊNH & STYLE CUSTOM CURSOR */
-        @media (pointer: fine) {
-            body, button, a, div, span, p, h1, h2, h3, select { cursor: none !important; }
-            input, textarea { cursor: text !important; }
-        }
-        #magic-cursor {
-            position: fixed;
-            top: 0; left: 0;
-            width: 8px; height: 8px;
-            background-color: #e46b5a;
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999999;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 10px #e46b5a;
-            transition: width 0.2s, height 0.2s, background-color 0.2s;
-        }
-        #magic-cursor-trail {
-            position: fixed;
-            top: 0; left: 0;
-            width: 34px; height: 34px;
-            border: 2px solid rgba(228, 107, 90, 0.5);
-            border-radius: 50%;
-            pointer-events: none;
-            z-index: 9999998;
-            transform: translate(-50%, -50%);
-            transition: width 0.2s, height 0.2s, background-color 0.2s, border-color 0.2s;
-        }
-        body.is-dragging-global #magic-cursor {
-            width: 14px; height: 14px;
-            background-color: #eab308;
-            box-shadow: 0 0 15px #eab308;
-        }
-        body.is-dragging-global #magic-cursor-trail {
-            width: 50px; height: 50px;
-            border-color: rgba(234, 179, 8, 0.8);
-            background-color: rgba(234, 179, 8, 0.15);
-        }
-        @media (pointer: coarse) {
-            #magic-cursor, #magic-cursor-trail { display: none !important; }
-        }
-
-        .fairy-lights {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 60px;
-            pointer-events: none;
-            background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 20" preserveAspectRatio="none"><path d="M0,10 Q25,20 50,10 T100,10" fill="none" stroke="%23444" stroke-width="1"/></svg>') repeat-x;
-            background-size: 150px 100%;
-            filter: drop-shadow(0 6px 12px rgba(253, 250, 226, 0.4));
-            z-index: 0;
-        }
-
-        /* ================= MICRO-INTERACTIONS & ANIMATIONS ================= */
-        .hover-spring {
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-        }
-        .hover-spring:hover {
-            transform: translateY(-6px) scale(1.02) rotate(1deg) !important;
-            box-shadow: 0 22px 35px rgba(0,0,0,0.5), 0 0 20px rgba(141, 164, 126, 0.2);
-        }
-
-        .glass-panel {
-            background: linear-gradient(135deg, rgba(40, 40, 40, 0.6), rgba(20, 20, 20, 0.8));
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 10px 40px 0 rgba(0, 0, 0, 0.4);
-        }
-
-        .cute-input {
-            border: 2px solid rgba(255,255,255,0.05);
-            background: rgba(15, 15, 15, 0.7);
-            color: #fdfae2;
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
-        .cute-input:focus {
-            outline: none;
-            border-color: #8da47e;
-            box-shadow: 0 0 20px rgba(141, 164, 126, 0.2);
-            transform: scale(1.01);
-            background: rgba(20, 20, 20, 0.9);
-        }
-
-        select option {
-            font-family: 'Quicksand', sans-serif;
-            font-weight: 600;
-        }
-
-        .typing-particle {
-            position: absolute;
-            pointer-events: none;
-            border-radius: 50%;
-            background: #e46b5a;
-            box-shadow: 0 0 10px #e46b5a;
-            animation: floatUp 0.6s ease-out forwards;
-            z-index: 9999;
-        }
-        @keyframes floatUp {
-            0% { transform: translateY(0) scale(1); opacity: 1; }
-            100% { transform: translateY(-40px) scale(0); opacity: 0; }
-        }
-
-        /* ================= BỐ CỤC KHOA HỌC (MASONRY CHUYÊN GIA) ================= */
-        .masonry-grid {
-            column-count: 1;
-            column-gap: 2rem;
-            width: 100%;
-        }
-        @media (min-width: 768px) { .masonry-grid { column-count: 2; } }
-        @media (min-width: 1024px) { .masonry-grid { column-count: 3; } }
-        @media (min-width: 1536px) { .masonry-grid { column-count: 4; } }
+        body { margin: 0; overflow: hidden; background-color: #fafafa; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
-        .paper-card {
-            background: #fdfbf7;
-            background-image: radial-gradient(#e5e0d8 1px, transparent 1px);
-            background-size: 20px 20px;
-            position: relative;
-            break-inside: avoid;
-            page-break-inside: avoid;
-            display: inline-block;
-            color: #3b312a;
-            box-shadow: 4px 8px 20px rgba(0,0,0,0.4);
-            border-radius: 6px;
-            word-wrap: break-word;
-            transition: all 0.3s ease;
-            width: 100%;
-            margin-bottom: 2rem;
+        /* Chứa các mục HTML di chuyển đồng bộ với vật lý */
+        #items-container {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 5;
+            pointer-events: none; /* Để canvas nhận diện chuột */
         }
 
-        .priority-high { border-top: 8px solid #e46b5a; }
-        .priority-medium { border-top: 8px solid #eab308; }
-        .priority-low { border-top: 8px solid #8da47e; }
-
-        .washi-tape {
+        .matter-item {
             position: absolute;
-            top: -14px;
-            left: 50%;
-            transform: translateX(-50%) rotate(-2deg);
-            width: 110px;
-            height: 34px;
-            background-image: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 10px,
-                rgba(255, 255, 255, 0.15) 10px,
-                rgba(255, 255, 255, 0.15) 20px
-            );
-            box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-            backdrop-filter: blur(4px);
+            top: 0; left: 0;
+            transform-origin: center;
+            will-change: transform;
+            user-select: none;
+            white-space: nowrap;
+        }
+
+        /* Lớp vật lý trong suốt nằm đè lên để bắt sự kiện chuột */
+        #physics-canvas {
+            position: absolute;
+            top: 0; left: 0;
             z-index: 10;
-            border-radius: 2px;
         }
 
-        .handwritten {
-            font-family: 'Mali', cursive;
-            font-size: 1.15rem;
-            line-height: 1.5;
-        }
-
-        .paper-card .handwritten {
-            color: #2a231e;
-        }
-
-        .pixel-text {
-            font-family: 'Space Mono', monospace;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .drop-zone {
-            transition: all 0.3s ease;
-            border: 2px dashed rgba(255,255,255,0.1);
-        }
-        .drop-zone.drag-over {
-            border-color: #e46b5a !important;
-            background: rgba(228, 107, 90, 0.15) !important;
-            transform: scale(1.03) !important;
-            box-shadow: inset 0 0 15px rgba(228, 107, 90, 0.4) !important;
-            opacity: 1 !important;
-        }
-
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-            background: rgba(0, 0, 0, 0.2);
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(141, 164, 126, 0.6);
-            border-radius: 10px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: #8da47e;
-        }
-
-        /* ================= BẢNG NHÀ TÙ (PRISON BOARD) ================= */
-        .prison-board {
+        /* Giao diện nút bấm luôn nổi trên cùng */
+        .ui-layer {
             position: relative;
-            background-color: #2b2b2b;
-            background-image: 
-                repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.1) 75%, rgba(0,0,0,0.1)),
-                repeating-linear-gradient(45deg, rgba(0,0,0,0.1) 25%, transparent 25%, transparent 75%, rgba(0,0,0,0.1) 75%, rgba(0,0,0,0.1));
-            background-position: 0 0, 10px 10px;
-            background-size: 20px 20px;
-            border: 16px solid #111;
-            border-radius: 12px;
-            padding: 2.5rem;
-            box-shadow: 
-                inset 0 0 60px rgba(0,0,0,1), 
-                0 20px 40px rgba(0,0,0,0.8);
-            min-height: 50vh;
+            z-index: 20;
+            pointer-events: none; /* Cho phép click xuyên qua vùng trống */
         }
-        .prison-board::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: radial-gradient(circle at center, transparent 30%, rgba(0,0,0,0.8) 100%);
-            pointer-events: none;
-            z-index: 1;
-        }
-        .bolt {
-            position: absolute;
-            width: 24px; height: 24px;
-            background: #333;
-            border-radius: 50%;
-            box-shadow: inset -3px -3px 6px rgba(0,0,0,0.9), inset 3px 3px 6px rgba(255,255,255,0.2), 0 4px 8px rgba(0,0,0,0.7);
-            z-index: 2;
-        }
-        .bolt::after {
-            content: '';
-            position: absolute;
-            top: 50%; left: 50%;
-            width: 60%; height: 4px;
-            background: rgba(0,0,0,0.7);
-            transform: translate(-50%, -50%) rotate(45deg);
-            border-radius: 2px;
-        }
-        .bolt.top-left { top: 16px; left: 16px; }
-        .bolt.top-right { top: 16px; right: 16px; }
-        .bolt.bottom-left { bottom: 16px; left: 16px; }
-        .bolt.bottom-right { bottom: 16px; right: 16px; }
-
-    </style></head><body class="p-4 md:p-12 relative min-h-screen">
-    
-    <!-- CUSTOM CURSOR DOM -->
-    <div id="magic-cursor"></div>
-    <div id="magic-cursor-trail"></div>
-
-    <div class="fairy-lights"></div>
-
-    <div class="w-full mx-auto relative z-10">
-        <header class="mb-10 md:mb-14 text-center pt-10">
-            <h1 class="pixel-text text-5xl md:text-6xl text-[#8da47e] mb-3 hover-spring inline-block drop-shadow-[0_0_20px_rgba(141,164,126,0.5)] font-bold">
-                Bù lu Bù loa
-            </h1>
-            <p class="text-[#a39785] font-medium text-lg tracking-wide">Tôi bị Obsessive Compulsive Disorder</p>
-        </header>
-
-        <section class="glass-panel p-5 md:p-8 rounded-[2rem] mb-12 md:mb-16 relative hover-spring">
-            <div class="absolute -top-4 -left-2 md:-top-6 md:-left-6 text-4xl md:text-5xl transform -rotate-12 drop-shadow-2xl z-20">🦹‍♂️</div>
-            <div class="absolute -bottom-4 -right-2 md:-bottom-6 md:-right-6 text-4xl md:text-5xl transform rotate-12 drop-shadow-2xl z-20">🔗</div>
-            
-            <h2 class="text-2xl font-bold mb-6 text-[#fdfae2] flex items-center gap-3">
-                <span class="pixel-text text-[#e46b5a] text-3xl">>></span> Vứt vào mồ chôn
-            </h2>
-            
-            <form id="videoForm" class="flex flex-col gap-5 md:gap-6 relative z-10">
-                <div class="flex flex-col md:flex-row gap-4 md:gap-5">
-                    <input type="text" id="linkInput" placeholder="🔗 đắp mộ cuộc lìnk" required 
-                        class="cute-input flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
-                    
-                    <input type="text" id="titleInput" placeholder="📝 đặt tên tội phạm" required 
-                        class="cute-input flex-1 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
-                </div>
-
-                <div class="flex flex-col md:flex-row gap-4 md:gap-5">
-                    <input type="text" id="categoryInput" placeholder="🏷️ ghi chú (vd: sigma, 67, brainrot,..)" required 
-                        class="cute-input flex-1 md:w-1/3 px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold placeholder-gray-500">
-                    
-                    <div class="relative w-full md:w-1/4" id="customSelectContainer">
-                        <div id="customSelectBtn" class="cute-input w-full px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-semibold flex justify-between items-center h-full cursor-pointer">
-                            <span id="customSelectValue" class="text-[#eab308] truncate">🟡 Dé lồ ( No mồ )</span>
-                            <svg class="w-5 h-5 ml-2 text-gray-400 transition-transform duration-300 flex-shrink-0" id="customSelectArrow" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"></path>
-                            </svg>
-                        </div>
-                        
-                        <div id="customSelectOptions" class="absolute left-0 w-full mt-2 bg-[#1f1f1f] border border-white/10 rounded-xl md:rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.8)] overflow-hidden z-[100] transition-all duration-300 origin-top transform scale-y-0 opacity-0 pointer-events-none backdrop-blur-xl">
-                            <div class="p-3 md:p-4 hover:bg-white/10 text-[#e46b5a] font-semibold transition-colors custom-option cursor-pointer" data-value="high">🔴 Rét ( Quách liền )</div>
-                            <div class="p-3 md:p-4 hover:bg-white/10 text-[#eab308] font-semibold transition-colors custom-option cursor-pointer" data-value="medium">🟡 Dé lồ ( No mồ )</div>
-                            <div class="p-3 md:p-4 hover:bg-white/10 text-[#8da47e] font-semibold transition-colors custom-option cursor-pointer" data-value="low">🟢 Gờ rin ( Cửa sau )</div>
-                        </div>
-                        <input type="hidden" id="priorityInput" value="medium">
-                    </div>
-                </div>
-
-                <div class="relative w-full">
-                    <textarea id="noteInput" rows="2" placeholder="✍️ đây là nơi bình thường nhất vì nó là ghi chú"
-                        class="cute-input w-full px-4 md:px-6 py-3 md:py-4 rounded-xl md:rounded-2xl font-medium resize-y handwritten text-xl placeholder-gray-500"></textarea>
-                </div>
-                
-                <div class="flex flex-row gap-3 w-full md:w-auto self-center mt-2">
-                    <button type="submit" id="submitBtn" class="bg-[#e46b5a] text-[#111] font-bold pixel-text text-lg md:text-2xl px-4 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-[#ff7b6a] transition-all transform active:scale-90 shadow-[0_0_25px_rgba(228,107,90,0.6)] tracking-widest whitespace-nowrap flex-1 md:flex-none">
-                        [ Giam tội phạm ]
-                    </button>
-                    <button type="button" id="cancelEditBtn" class="hidden bg-gray-500 text-white font-bold pixel-text text-lg md:text-2xl px-4 md:px-10 py-3 md:py-4 rounded-xl md:rounded-2xl hover:bg-gray-600 transition-all transform active:scale-90 shadow-[0_0_25px_rgba(107,114,128,0.6)] tracking-widest whitespace-nowrap flex-1 md:flex-none cursor-pointer">
-                        [ Hủy ]
-                    </button>
-                </div>
-            </form>
-        </section>
         
-        <section class="mb-10">
-            <div class="glass-panel p-4 md:p-6 rounded-3xl overflow-hidden">
-                <h3 class="font-bold text-[#fdfae2] mb-5 text-base md:text-lg flex items-center gap-2">
-                    <span>⛓️ Danh sách đánh đập tội phạm ( kéo thả tên vào để đổi ưu tiên bị đập )</span>
-                </h3>
-                
-                <div class="flex flex-col lg:flex-row gap-6 lg:gap-8">
-                    <div class="w-full lg:w-2/3 border-b lg:border-b-0 lg:border-r border-gray-700 pb-4 lg:pb-0 pr-0 lg:pr-4 flex flex-col justify-center overflow-x-auto">
-                        <p class="text-sm text-gray-400 mb-3 pixel-text font-bold">/// CHỦ ĐỀ ///</p>
-                        <div id="filterContainer" class="flex flex-wrap gap-2 md:gap-3 items-center min-w-max sm:min-w-0"></div>
-                    </div>
+        .ui-layer button {
+            pointer-events: auto; /* Chỉ bắt click ở các nút */
+        }
+    </style>
+</head>
+<body>
 
-                    <div class="w-full lg:w-1/3 grid grid-cols-3 gap-2 sm:gap-3">
-                        <div class="drop-zone bg-[#251515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#e46b5a] border-opacity-40 text-[#e46b5a] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg cursor-pointer" data-priority="high" onclick="togglePriorityFilter('high')">
-                            <span>🔴 hai</span>
-                        </div>
-                        <div class="drop-zone bg-[#252515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#eab308] border-opacity-40 text-[#eab308] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg cursor-pointer" data-priority="medium" onclick="togglePriorityFilter('medium')">
-                            <span>🟡 mít</span>
-                        </div>
-                        <div class="drop-zone bg-[#152515] rounded-xl p-2 sm:p-4 text-center border-2 border-[#8da47e] border-opacity-40 text-[#8da47e] font-bold flex flex-col justify-center pixel-text text-xs sm:text-lg cursor-pointer" data-priority="low" onclick="togglePriorityFilter('low')">
-                            <span>🟢 low cortisol</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section>
-            <div id="progressContainer" class="hidden mb-8 glass-panel p-4 md:p-5 rounded-3xl relative">
-                <div id="progressInner" class="max-h-[160px] overflow-y-auto custom-scrollbar grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6 pr-2">
-                </div>
-            </div>
-
-            <!-- BẢNG NHÀ TÙ BAO BỌC GRID -->
-            <div class="prison-board mt-8 mb-16 overflow-x-auto custom-scrollbar">
-                <!-- Chốt kim loại 4 góc -->
-                <div class="bolt top-left"></div>
-                <div class="bolt top-right"></div>
-                <div class="bolt bottom-left"></div>
-                <div class="bolt bottom-right"></div>
-                
-                <!-- Bố cục thác nước bên trong -->
-                <div id="videoGrid" class="masonry-grid relative z-10 w-full"></div>
-                
-                <div id="emptyState" class="hidden text-center py-24 relative z-10">
-                </div>
-            </div>
-        </section>
+    <!-- GIAO DIỆN BẢNG ĐIỀU KHIỂN -->
+    <div class="ui-layer w-full flex flex-col items-center justify-center pt-20 gap-6">
+        <div class="text-5xl md:text-7xl font-bold text-zinc-800 tracking-tight text-center">
+            Interactive <span class="text-[#e46b5a] italic">Physics</span>
+        </div>
+        
+        <div class="flex gap-4 mt-4">
+            <button id="btn-gravity" class="flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all shadow-lg active:scale-95 bg-white border-2 border-zinc-200 text-zinc-800 hover:bg-zinc-100">
+                <svg id="icon-wind" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="block"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>
+                <svg id="icon-rocket" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="hidden"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09z"/><path d="m12 15-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2z"/><path d="M9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0"/><path d="M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>
+                <span id="text-gravity">Mất trọng lực</span>
+            </button>
+            
+            <button id="btn-reset" class="flex items-center gap-2 px-6 py-3 rounded-full bg-[#e46b5a] text-white font-semibold hover:bg-[#c45242] transition-all shadow-lg active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                Bơm Oxy (Reset)
+            </button>
+        </div>
     </div>
 
-    <div id="bulkActionBar" class="fixed bottom-6 left-1/2 transform -translate-x-1/2 bg-[#1a1a1a] border-2 border-[#e46b5a] p-3 md:p-4 rounded-2xl shadow-2xl z-50 hidden flex-row gap-3 md:gap-4 items-center overflow-x-auto max-w-[90vw] whitespace-nowrap">
-        <span id="selectedCount" class="text-[#fdfae2] font-bold pixel-text text-sm md:text-base"></span>
-        <button onclick="bulkAction()" id="bulkActionBtn" class="bg-[#e46b5a] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#ff7b6a] transition-all text-xs md:text-sm"></button>
-        <button onclick="bulkRestore()" id="bulkRestoreBtn" class="hidden bg-[#8da47e] text-[#111] px-3 md:px-4 py-2 rounded-xl font-bold pixel-text hover:bg-[#9eb88f] transition-all text-xs md:text-sm">THA TỘI</button>
-        <button onclick="clearSelection()" class="text-gray-400 hover:text-white px-2 font-bold pixel-text text-xs md:text-sm">HỦY</button>
+    <!-- CÁC KHỐI VẬT LÝ -->
+    <!-- data-x và data-y là vị trí tương đối (% màn hình), data-angle là góc xoay -->
+    <div id="items-container">
+        <div class="matter-item px-8 py-4 bg-[#0015ff] text-white rounded-full text-xl md:text-2xl font-bold shadow-xl" data-x="0.2" data-y="0.1" data-angle="0">
+            React.js
+        </div>
+        <div class="matter-item px-8 py-4 bg-[#E794DA] text-white rounded-full text-xl md:text-2xl font-bold shadow-xl" data-x="0.35" data-y="0.3" data-angle="0">
+            UI Design
+        </div>
+        <div class="matter-item px-8 py-4 bg-[#1f464d] text-white rounded-full text-xl md:text-2xl font-bold shadow-xl" data-x="0.5" data-y="0.15" data-angle="0.17">
+            Typescript
+        </div>
+        <div class="matter-item px-8 py-4 bg-[#ff5941] text-white rounded-full text-xl md:text-2xl font-bold shadow-xl" data-x="0.7" data-y="0.2" data-angle="0">
+            Tailwind CSS
+        </div>
+        <div class="matter-item px-8 py-4 bg-orange-500 text-white rounded-full text-xl md:text-2xl font-bold shadow-xl" data-x="0.8" data-y="0.4" data-angle="-0.26">
+            Frontend
+        </div>
+        <div class="matter-item px-8 py-4 bg-[#ffd726] text-zinc-900 rounded-full text-xl md:text-2xl font-bold shadow-xl" data-x="0.6" data-y="0.5" data-angle="0">
+            Matter.js
+        </div>
     </div>
 
+    <!-- KỊCH BẢN VẬT LÝ -->
     <script>
-        // === HÀM BẢO MẬT XSS ===
-        const escapeHTML = (str) => {
-            if (!str) return '';
-            return str.toString().replace(/[&<>'"]/g, 
-                tag => ({
-                    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
-                }[tag] || tag)
-            );
-        };
+        const { Engine, Render, Runner, World, Bodies, Mouse, MouseConstraint, Events } = Matter;
 
-        // === HỆ THỐNG CUSTOM CURSOR LOGIC ===
-        const magicCursor = document.getElementById('magic-cursor');
-        const magicTrail = document.getElementById('magic-cursor-trail');
-        let mX = window.innerWidth / 2;
-        let mY = window.innerHeight / 2;
-        let tX = mX; let tY = mY;
+        // Khởi tạo Engine
+        const engine = Engine.create();
+        let width = window.innerWidth;
+        let height = window.innerHeight;
 
-        window.addEventListener('mousemove', (e) => {
-            mX = e.clientX; mY = e.clientY;
-            magicCursor.style.transform = `translate3d(${mX}px, ${mY}px, 0) translate(-50%, -50%)`;
+        // Khởi tạo Render (Canvas trong suốt bắt sự kiện chuột)
+        const render = Render.create({
+            element: document.body,
+            engine: engine,
+            options: {
+                width: width,
+                height: height,
+                background: 'transparent',
+                wireframes: false
+            }
         });
-        window.addEventListener('mousedown', () => document.body.classList.add('is-dragging-global'));
-        window.addEventListener('mouseup', () => document.body.classList.remove('is-dragging-global'));
+        render.canvas.id = 'physics-canvas';
 
-        function animateCursorTrail() {
-            if (window.matchMedia("(pointer: fine)").matches) {
-                tX += (mX - tX) * 0.15;
-                tY += (mY - tY) * 0.15;
-                magicTrail.style.transform = `translate3d(${tX}px, ${tY}px, 0) translate(-50%, -50%)`;
-            }
-            requestAnimationFrame(animateCursorTrail);
-        }
-        if (window.matchMedia("(pointer: fine)").matches) {
-            animateCursorTrail();
-        }
-        // ===================================
+        // Lấy danh sách các mục HTML
+        const domItems = document.querySelectorAll('.matter-item');
+        const bodiesData = [];
 
-        let audioCtx = null;
-        
-        function playSound(type) {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        // Đồng bộ HTML vào thế giới Matter.js
+        domItems.forEach(el => {
+            const rect = el.getBoundingClientRect();
+            const startX = width * parseFloat(el.getAttribute('data-x'));
+            const startY = height * parseFloat(el.getAttribute('data-y'));
+            const angle = parseFloat(el.getAttribute('data-angle')) || 0;
+
+            const body = Bodies.rectangle(startX, startY, rect.width, rect.height, {
+                angle: angle,
+                chamfer: { radius: rect.height / 2 }, // Bo tròn các góc giống rounded-full
+                restitution: 0.2, // Độ nảy
+                friction: 0.5,
+                render: { visible: false } // Ẩn hình chữ nhật đen mặc định
+            });
+
+            bodiesData.push({ dom: el, body: body, startX, startY, startAngle: angle });
+            World.add(engine.world, body);
+        });
+
+        // Bức tường (Tĩnh)
+        const wallOptions = { isStatic: true, render: { visible: false } };
+        let bottomWall = Bodies.rectangle(width / 2, height + 50, width * 2, 100, wallOptions);
+        let leftWall = Bodies.rectangle(-50, height / 2, 100, height * 2, wallOptions);
+        let rightWall = Bodies.rectangle(width + 50, height / 2, 100, height * 2, wallOptions);
+        let topWall = Bodies.rectangle(width / 2, -150, width * 2, 100, wallOptions); // Tường trên chặn bay mất tiêu
+        World.add(engine.world, [bottomWall, leftWall, rightWall, topWall]);
+
+        // Cấu hình Kéo thả
+        const mouse = Mouse.create(render.canvas);
+        const mConstraint = MouseConstraint.create(engine, {
+            mouse: mouse,
+            constraint: { stiffness: 0.2, render: { visible: false } }
+        });
+        World.add(engine.world, mConstraint);
+        render.mouse = mouse;
+
+        // Cập nhật vị trí HTML theo Physic Loop
+        Events.on(engine, 'afterUpdate', () => {
+            bodiesData.forEach(({ dom, body }) => {
+                const { x, y } = body.position;
+                dom.style.transform = `translate(${x - dom.offsetWidth / 2}px, ${y - dom.offsetHeight / 2}px) rotate(${body.angle}rad)`;
+            });
+
+            // Đổi con trỏ chuột
+            if (mConstraint.body) {
+                render.canvas.style.cursor = 'grabbing';
+            } else {
+                const hovered = Matter.Query.point(engine.world.bodies, mouse.position).length > 0;
+                render.canvas.style.cursor = hovered ? 'grab' : 'default';
             }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume().catch(() => { /* Bỏ qua lỗi trình duyệt chặn Autoplay */ });
-            }
+        });
+
+        // Chạy Engine
+        Runner.run(Runner.create(), engine);
+        Render.run(render);
+
+        // --- CÁC NÚT TƯƠNG TÁC ---
+        let isZeroGravity = false;
+        const btnGravity = document.getElementById('btn-gravity');
+        const iconWind = document.getElementById('icon-wind');
+        const iconRocket = document.getElementById('icon-rocket');
+        const textGravity = document.getElementById('text-gravity');
+
+        // Bật / Tắt trọng lực
+        btnGravity.addEventListener('click', () => {
+            isZeroGravity = !isZeroGravity;
             
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            const now = audioCtx.currentTime;
+            // Chỉnh lực hút (âm = bay lên, dương = rơi xuống)
+            engine.gravity.y = isZeroGravity ? -0.05 : 1;
             
-            if (type === 'hover') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(1000, now + 0.03);
-                gain.gain.setValueAtTime(0.01, now);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-                osc.start(now); osc.stop(now + 0.03);
-            } else if (type === 'click') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(400, now);
-                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
-                gain.gain.setValueAtTime(0.05, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'success') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(523.25, now); 
-                osc.frequency.setValueAtTime(880, now + 0.1); 
-                gain.gain.setValueAtTime(0, now);
-                gain.gain.linearRampToValueAtTime(0.1, now + 0.05);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
-                osc.start(now); osc.stop(now + 0.4);
-            } else if (type === 'type') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(400 + Math.random() * 200, now);
-                gain.gain.setValueAtTime(0.005, now);
-                gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.02);
-                osc.start(now); osc.stop(now + 0.02);
-            } else if (type === 'drop') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(200, now);
-                osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-                osc.start(now); osc.stop(now + 0.15);
+            // Chỉnh giao diện nút
+            if (isZeroGravity) {
+                btnGravity.className = "flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all shadow-lg active:scale-95 bg-[#1f464d] text-white hover:bg-[#153237]";
+                iconWind.classList.add('hidden');
+                iconRocket.classList.remove('hidden');
+                textGravity.innerText = 'Khôi phục trọng lực';
+            } else {
+                btnGravity.className = "flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all shadow-lg active:scale-95 bg-white border-2 border-zinc-200 text-zinc-800 hover:bg-zinc-100";
+                iconWind.classList.remove('hidden');
+                iconRocket.classList.add('hidden');
+                textGravity.innerText = 'Mất trọng lực';
             }
-        }
+        });
 
-        document.querySelectorAll('input, textarea').forEach(input => {
-            input.addEventListener('input', function(e) {
-                playSound('type');
+        // Bơm Oxy (Reset)
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            // Tắt chế độ không trọng lực
+            isZeroGravity = false;
+            engine.gravity.y = 1;
+            btnGravity.className = "flex items-center gap-2 px-6 py-3 rounded-full font-semibold transition-all shadow-lg active:scale-95 bg-white border-2 border-zinc-200 text-zinc-800 hover:bg-zinc-100";
+            iconWind.classList.remove('hidden');
+            iconRocket.classList.add('hidden');
+            textGravity.innerText = 'Mất trọng lực';
+
+            // Dịch chuyển khối về lại vị trí ban đầu và ngắt lực quán tính
+            bodiesData.forEach(({ dom, body, startX, startY, startAngle }) => {
+                const freshX = window.innerWidth * parseFloat(dom.getAttribute('data-x'));
+                const freshY = window.innerHeight * parseFloat(dom.getAttribute('data-y'));
                 
-                const rect = this.getBoundingClientRect();
-                const particle = document.createElement('div');
-                particle.className = 'typing-particle';
-                
-                const size = Math.random() * 4 + 2;
-                particle.style.width = `${size}px`;
-                particle.style.height = `${size}px`;
-                particle.style.left = `${rect.left + Math.random() * rect.width}px`;
-                particle.style.top = `${rect.top + (Math.random() * 20)}px`;
-                
-                document.body.appendChild(particle);
-                setTimeout(() => particle.remove(), 600);
+                Matter.Body.setPosition(body, { x: freshX, y: freshY });
+                Matter.Body.setVelocity(body, { x: 0, y: 0 });
+                Matter.Body.setAngle(body, startAngle);
+                Matter.Body.setAngularVelocity(body, 0);
             });
         });
 
-        document.body.addEventListener('mouseenter', (e) => {
-            if(['BUTTON', 'A', 'SELECT', 'INPUT'].includes(e.target.tagName) || e.target.classList?.contains('custom-option') || e.target.id === 'customSelectBtn') {
-                playSound('hover');
-            }
-        }, true);
-        document.body.addEventListener('mousedown', (e) => {
-            if(['BUTTON', 'A'].includes(e.target.tagName)) playSound('click');
+        // Xử lý khi thu phóng cửa sổ trình duyệt
+        window.addEventListener('resize', () => {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            render.canvas.width = width;
+            render.canvas.height = height;
+            
+            Matter.Body.setPosition(bottomWall, { x: width / 2, y: height + 50 });
+            Matter.Body.setPosition(rightWall, { x: width + 50, y: height / 2 });
+            Matter.Body.setPosition(topWall, { x: width / 2, y: -150 });
         });
-
-        const selectBtn = document.getElementById('customSelectBtn');
-        const selectOptions = document.getElementById('customSelectOptions');
-        const selectValue = document.getElementById('customSelectValue');
-        const priorityInput = document.getElementById('priorityInput');
-        const selectArrow = document.getElementById('customSelectArrow');
-
-        selectBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isOpen = !selectOptions.classList.contains('scale-y-0');
-            if (isOpen) {
-                selectOptions.classList.add('scale-y-0', 'opacity-0', 'pointer-events-none');
-                selectArrow.classList.remove('rotate-180');
-            } else {
-                selectOptions.classList.remove('scale-y-0', 'opacity-0', 'pointer-events-none');
-                selectArrow.classList.add('rotate-180');
-                playSound('click');
-            }
-        });
-
-        document.querySelectorAll('.custom-option').forEach(option => {
-            option.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const val = option.getAttribute('data-value');
-                const text = option.innerHTML;
-                const colorClass = Array.from(option.classList).find(c => c.startsWith('text-['));
-                
-                priorityInput.value = val;
-                selectValue.innerHTML = text;
-                selectValue.className = `${colorClass} truncate`;
-
-                selectOptions.classList.add('scale-y-0', 'opacity-0', 'pointer-events-none');
-                selectArrow.classList.remove('rotate-180');
-                playSound('success');
-            });
-        });
-
-        document.addEventListener('click', () => {
-            if(!selectOptions.classList.contains('scale-y-0')) {
-                selectOptions.classList.add('scale-y-0', 'opacity-0', 'pointer-events-none');
-                selectArrow.classList.remove('rotate-180');
-            }
-        });
-
-        let videos = [];
-        let pinnedTopics = []; 
-        try {
-            videos = JSON.parse(localStorage.getItem('indieVideos')) || [];
-            pinnedTopics = JSON.parse(localStorage.getItem('pinnedTopics')) || [];
-        } catch (e) {
-            console.error("Dữ liệu hỏng, khởi tạo mới.");
-            localStorage.removeItem('indieVideos');
-            localStorage.removeItem('pinnedTopics');
-        }
-
-        let currentFilter = 'All';
-        let currentPriorityFilter = 'All'; 
-        let isTrashView = false;
-        let selectedIds = new Set();
-        let editingId = null;
-
-        const form = document.getElementById('videoForm');
-        const grid = document.getElementById('videoGrid');
-        const filterContainer = document.getElementById('filterContainer');
-        const emptyState = document.getElementById('emptyState');
-        const submitBtn = document.getElementById('submitBtn');
-        const cancelEditBtn = document.getElementById('cancelEditBtn');
-        const progressContainer = document.getElementById('progressContainer');
-
-        const priorityScore = { 'high': 3, 'medium': 2, 'low': 1 };
-        const priorityIcon = { 'high': '🔴 Nguy hiểm', 'medium': '🟡 giảm án', 'low': '🟢 trắng án' };
-        const tapeColors = { 'high': 'rgba(228, 107, 90, 0.75)', 'medium': 'rgba(234, 179, 8, 0.75)', 'low': 'rgba(141, 164, 126, 0.75)' };
-
-        function saveToLocalStorage() { localStorage.setItem('indieVideos', JSON.stringify(videos)); }
-        function savePinnedTopics() { localStorage.setItem('pinnedTopics', JSON.stringify(pinnedTopics)); }
-
-        window.togglePinTopic = function(topic) {
-            if (pinnedTopics.includes(topic)) {
-                pinnedTopics = pinnedTopics.filter(t => t !== topic);
-            } else {
-                pinnedTopics.push(topic);
-            }
-            savePinnedTopics();
-            playSound('success');
-            renderUI();
-        };
-
-        function togglePriorityFilter(priority) {
-            if (currentPriorityFilter === priority) {
-                currentPriorityFilter = 'All'; 
-            } else {
-                currentPriorityFilter = priority;
-            }
-            clearSelection();
-            playSound('click');
-            renderUI();
-        }
-
-        window.toggleSelection = function(e, id) {
-            e.stopPropagation();
-            if (e.target.checked) {
-                selectedIds.add(id);
-            } else {
-                selectedIds.delete(id);
-            }
-            playSound('type');
-            updateBulkActionBar();
-        }
-
-        window.updateBulkActionBar = function() {
-            const bar = document.getElementById('bulkActionBar');
-            const count = document.getElementById('selectedCount');
-            const btn = document.getElementById('bulkActionBtn');
-            const restoreBtn = document.getElementById('bulkRestoreBtn');
-            
-            if (selectedIds.size > 0) {
-                bar.classList.remove('hidden');
-                bar.classList.add('flex');
-                count.innerText = `ĐÃ CHỌN: ${selectedIds.size}`;
-                if (isTrashView) {
-                    btn.innerText = 'XÓA VĨNH VIỄN';
-                    restoreBtn.classList.remove('hidden');
-                } else {
-                    btn.innerText = 'TIỄN RA PHÁP TRƯỜNG';
-                    restoreBtn.classList.add('hidden');
-                }
-            } else {
-                bar.classList.add('hidden');
-                bar.classList.remove('flex');
-            }
-        }
-
-        window.clearSelection = function() {
-            selectedIds.clear();
-            updateBulkActionBar();
-            renderUI();
-        }
-
-        window.bulkAction = function() {
-            if (isTrashView) {
-                videos = videos.filter(v => !selectedIds.has(v.id));
-            } else {
-                videos.forEach(v => {
-                    if (selectedIds.has(v.id)) v.isDeleted = true;
-                });
-            }
-            saveToLocalStorage();
-            playSound('success');
-            clearSelection();
-        }
-
-        window.bulkRestore = function() {
-            videos.forEach(v => {
-                if (selectedIds.has(v.id)) v.isDeleted = false;
-            });
-            saveToLocalStorage();
-            playSound('success');
-            clearSelection();
-        }
-        
-        // TÍNH NĂNG LƯU: COPY NỘI DUNG VÀO CLIPBOARD BẢN FIX MỚI NHẤT
-        window.toggleSave = function(e, id) {
-            e.stopPropagation();
-            const video = videos.find(v => v.id === id);
-            
-            if (video) {
-                // Chỉ copy nội dung ghi chú (note)
-                const content = video.note;
-                const btn = e.currentTarget;
-                
-                const showSuccess = () => {
-                    playSound('success');
-                    const originalSVG = btn.dataset.orig || btn.innerHTML;
-                    if (!btn.dataset.orig) btn.dataset.orig = originalSVG;
-                    
-                    btn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" /></svg>`;
-                    btn.classList.add('scale-125', 'pointer-events-none');
-                    
-                    setTimeout(() => {
-                        btn.innerHTML = originalSVG;
-                        btn.classList.remove('scale-125', 'pointer-events-none');
-                    }, 1500);
-                };
-
-                const fallbackCopy = (text) => {
-                    const textArea = document.createElement("textarea");
-                    textArea.value = text;
-                    textArea.style.top = "0";
-                    textArea.style.left = "0";
-                    textArea.style.position = "fixed";
-                    textArea.style.opacity = "0";
-                    document.body.appendChild(textArea);
-                    textArea.focus();
-                    textArea.select();
-                    
-                    try {
-                        const successful = document.execCommand('copy');
-                        if (successful) {
-                            showSuccess();
-                        } else {
-                            prompt("Trình duyệt chặn copy ẩn, vui lòng copy thủ công (Ctrl+C):", text);
-                        }
-                    } catch (err) {
-                        prompt("Trình duyệt chặn copy ẩn, vui lòng copy thủ công (Ctrl+C):", text);
-                    }
-                    document.body.removeChild(textArea);
-                };
-
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(content)
-                        .then(showSuccess)
-                        .catch(() => fallbackCopy(content));
-                } else {
-                    fallbackCopy(content);
-                }
-            }
-        }
-
-        cancelEditBtn.addEventListener('click', () => {
-            editingId = null;
-            form.reset();
-            submitBtn.innerText = '[ Giam tội phạm ]';
-            cancelEditBtn.classList.add('hidden');
-            document.getElementById('priorityInput').value = 'medium';
-            const defaultOption = document.querySelector(`.custom-option[data-value="medium"]`);
-            document.getElementById('customSelectValue').innerHTML = defaultOption.innerHTML;
-            document.getElementById('customSelectValue').className = `text-[#eab308] truncate`;
-        });
-
-        form.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            let linkVal = document.getElementById('linkInput').value.trim();
-            if (linkVal && !/^https?:\/\//i.test(linkVal)) {
-                linkVal = 'https://' + linkVal;
-            }
-
-            if (editingId) {
-                const index = videos.findIndex(v => v.id === editingId);
-                if (index !== -1) {
-                    videos[index].link = linkVal;
-                    videos[index].title = document.getElementById('titleInput').value;
-                    videos[index].category = document.getElementById('categoryInput').value.trim();
-                    videos[index].priority = document.getElementById('priorityInput').value;
-                    videos[index].note = document.getElementById('noteInput').value.trim() || "trống thía...";
-                }
-                editingId = null;
-                submitBtn.innerText = '[ Giam tội phạm ]';
-                cancelEditBtn.classList.add('hidden');
-            } else {
-                const newVideo = {
-                    id: Date.now().toString(),
-                    link: linkVal,
-                    title: document.getElementById('titleInput').value,
-                    category: document.getElementById('categoryInput').value.trim(),
-                    priority: document.getElementById('priorityInput').value,
-                    note: document.getElementById('noteInput').value.trim() || "trống thía...",
-                    completed: false, 
-                    isDeleted: false,
-                    date: new Date().toLocaleDateString('vi-VN')
-                };
-                videos.push(newVideo);
-            }
-            
-            saveToLocalStorage();
-            playSound('success');
-            
-            form.reset();
-            document.getElementById('priorityInput').value = 'medium';
-            const defaultOption = document.querySelector(`.custom-option[data-value="medium"]`);
-            document.getElementById('customSelectValue').innerHTML = defaultOption.innerHTML;
-            document.getElementById('customSelectValue').className = `text-[#eab308] truncate`;
-            
-            renderUI();
-        });
-
-        function editVideo(id) {
-            const video = videos.find(v => v.id === id);
-            if (!video) return;
-            
-            editingId = id;
-            document.getElementById('linkInput').value = video.link;
-            document.getElementById('titleInput').value = video.title;
-            document.getElementById('categoryInput').value = video.category || '';
-            document.getElementById('priorityInput').value = video.priority;
-            document.getElementById('noteInput').value = video.note === "trống thía..." ? "" : video.note;
-            
-            const activeOption = document.querySelector(`.custom-option[data-value="${video.priority}"]`);
-            if(activeOption) {
-                const colorClass = Array.from(activeOption.classList).find(c => c.startsWith('text-['));
-                document.getElementById('customSelectValue').innerHTML = activeOption.innerHTML;
-                document.getElementById('customSelectValue').className = `${colorClass} truncate`;
-            }
-
-            submitBtn.innerText = '[ Cập nhật tội phạm ]';
-            cancelEditBtn.classList.remove('hidden');
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-            playSound('click');
-        }
-
-        function deleteVideo(id) {
-            if (isTrashView) {
-                videos = videos.filter(v => v.id !== id);
-            } else {
-                const index = videos.findIndex(v => v.id === id);
-                if (index !== -1) videos[index].isDeleted = true;
-            }
-            saveToLocalStorage();
-            playSound('click');
-            renderUI();
-        }
-
-        window.restoreVideo = function(id) {
-            const index = videos.findIndex(v => v.id === id);
-            if (index !== -1) videos[index].isDeleted = false;
-            saveToLocalStorage();
-            playSound('success');
-            renderUI();
-        }
-
-        function toggleComplete(id) {
-            const index = videos.findIndex(v => v.id === id);
-            if (index !== -1) {
-                videos[index].completed = !videos[index].completed;
-                saveToLocalStorage();
-                playSound('success');
-                renderUI();
-            }
-        }
-
-        function renderFilters() {
-            const activeVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
-            let topics = Array.from(new Set(activeVideos.map(v => v.category)));
-            
-            topics.sort((a, b) => {
-                const aPinned = pinnedTopics.includes(a);
-                const bPinned = pinnedTopics.includes(b);
-                if (aPinned && !bPinned) return -1;
-                if (!aPinned && bPinned) return 1;
-                return a.localeCompare(b);
-            });
-
-            if (currentFilter !== 'All' && !topics.includes(currentFilter)) {
-                currentFilter = 'All';
-            }
-
-            const cats = ['All', ...topics];
-            filterContainer.innerHTML = '';
-
-            cats.forEach(cat => {
-                const btn = document.createElement('button');
-                
-                let baseClasses = "group px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider mr-2 mb-2 flex items-center gap-1 overflow-hidden ";
-                if (currentFilter === cat && !isTrashView) {
-                    btn.className = baseClasses + "bg-[#8da47e] text-[#1a1a1a] shadow-[0_0_15px_#8da47e] transform scale-105";
-                } else {
-                    btn.className = baseClasses + "bg-[#2a2a2a] text-gray-400 border border-gray-700 hover:text-white hover:border-[#8da47e]";
-                }
-
-                if (cat === 'All') {
-                    btn.innerText = '⛓️🥀 TẤT CẢ';
-                } else {
-                    const isPinned = pinnedTopics.includes(cat);
-                    const pinHtml = isPinned 
-                        ? `<span class="pin-icon ml-1 opacity-100 scale-110 drop-shadow-[0_0_8px_rgba(234,179,8,0.8)] transition-all duration-500 ease-out cursor-pointer text-base inline-block" title="Bỏ ghim">📌</span>`
-                        : `<span class="pin-icon overflow-hidden max-w-0 opacity-0 group-hover:max-w-[24px] group-hover:opacity-70 group-hover:ml-1 hover:!opacity-100 grayscale hover:grayscale-0 transition-all duration-500 ease-out cursor-pointer text-base inline-flex items-center" title="Ghim ưu tiên">📌</span>`;
-                    btn.innerHTML = `<span class="whitespace-nowrap">▤ ${escapeHTML(cat)}</span>${pinHtml}`;
-                }
-
-                btn.onclick = (e) => {
-                    if (e.target.closest('.pin-icon')) {
-                        e.stopPropagation();
-                        togglePinTopic(cat);
-                        return;
-                    }
-                    isTrashView = false;
-                    currentFilter = cat;
-                    clearSelection();
-                    playSound('click');
-                    renderUI();
-                };
-                filterContainer.appendChild(btn);
-            });
-
-            const divider = document.createElement('div');
-            divider.className = "w-[2px] h-8 bg-gray-700 mx-2 hidden md:block mb-2";
-            filterContainer.appendChild(divider);
-
-            const trashBtn = document.createElement('button');
-            trashBtn.innerText = '🪓 PHÁP TRƯỜNG';
-            let trashClasses = "px-4 py-2 rounded-lg text-sm font-bold transition-all duration-300 pixel-text tracking-wider ml-0 md:ml-2 mb-2 border ";
-            if (isTrashView) {
-                trashBtn.className = trashClasses + "bg-[#e46b5a] text-[#111] shadow-[0_0_15px_#e46b5a] border-[#e46b5a] transform scale-105";
-            } else {
-                trashBtn.className = trashClasses + "bg-[#2a2a2a] text-[#e46b5a] border-gray-700 hover:border-[#e46b5a] hover:bg-[#3a2a2a]";
-            }
-            trashBtn.onclick = () => {
-                isTrashView = true;
-                currentFilter = 'All';
-                clearSelection();
-                playSound('click');
-                renderUI();
-            };
-            filterContainer.appendChild(trashBtn);
-        }
-
-        function renderPriorityFilters() {
-            document.querySelectorAll('.drop-zone').forEach(zone => {
-                const p = zone.getAttribute('data-priority');
-                if (currentPriorityFilter === 'All') {
-                    zone.style.boxShadow = 'none';
-                    zone.style.transform = 'scale(1)';
-                    zone.style.opacity = '1';
-                } else if (currentPriorityFilter === p) {
-                    if(p === 'high') zone.style.boxShadow = 'inset 0 0 15px rgba(228, 107, 90, 0.4), 0 0 15px rgba(228, 107, 90, 0.4)';
-                    if(p === 'medium') zone.style.boxShadow = 'inset 0 0 15px rgba(234, 179, 8, 0.4), 0 0 15px rgba(234, 179, 8, 0.4)';
-                    if(p === 'low') zone.style.boxShadow = 'inset 0 0 15px rgba(141, 164, 126, 0.4), 0 0 15px rgba(141, 164, 126, 0.4)';
-                    zone.style.transform = 'scale(1.05)';
-                    zone.style.opacity = '1';
-                } else {
-                    zone.style.boxShadow = 'none';
-                    zone.style.transform = 'scale(1)';
-                    zone.style.opacity = '0.3';
-                }
-            });
-        }
-
-        function renderVideos() {
-            grid.innerHTML = '';
-            
-            const progressInner = document.getElementById('progressInner');
-            progressInner.innerHTML = ''; 
-            
-            let filteredVideos = videos.filter(v => isTrashView ? !!v.isDeleted : !v.isDeleted);
-            
-            if (!isTrashView && currentFilter !== 'All') {
-                filteredVideos = filteredVideos.filter(v => v.category === currentFilter);
-            }
-
-            if (currentPriorityFilter !== 'All') {
-                filteredVideos = filteredVideos.filter(v => v.priority === currentPriorityFilter);
-            }
-
-            // THUẬT TOÁN SẮP XẾP CHUYÊN GIA 4 LỚP KHOA HỌC
-            filteredVideos.sort((a, b) => {
-                if (a.completed !== b.completed) return a.completed ? 1 : -1;
-                
-                if (priorityScore[b.priority] !== priorityScore[a.priority]) {
-                    return priorityScore[b.priority] - priorityScore[a.priority];
-                }
-                
-                if (a.category !== b.category) {
-                    return a.category.localeCompare(b.category);
-                }
-                
-                return Number(b.id) - Number(a.id);
-            });
-
-            if (filteredVideos.length === 0) {
-                grid.classList.add('hidden');
-                emptyState.classList.remove('hidden');
-                progressContainer.classList.add('hidden');
-
-                if (isTrashView) {
-                    emptyState.innerHTML = `
-                        <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">🪓❄️</div>
-                        <p class="text-xl md:text-2xl text-[#e46b5a] pixel-text font-bold tracking-widest">pháp trường lạnh giá ❄️</p>
-                    `;
-                } else {
-                    emptyState.innerHTML = `
-                        <div class="text-7xl mb-6 opacity-40 animate-pulse drop-shadow-lg">⛓️🥀</div>
-                        <p class="text-xl md:text-2xl text-[#8da47e] pixel-text font-bold tracking-widest">phòng giam trống rỗng. Hãy phạm tội</p>
-                    `;
-                }
-            } else {
-                grid.classList.remove('hidden');
-                emptyState.classList.add('hidden');
-                
-                if (!isTrashView) {
-                    progressContainer.classList.remove('hidden');
-                    let topicsToRender = currentFilter === 'All' 
-                        ? Array.from(new Set(filteredVideos.map(v => v.category))) 
-                        : [currentFilter];
-
-                    topicsToRender.sort((a, b) => {
-                        const aPinned = pinnedTopics.includes(a);
-                        const bPinned = pinnedTopics.includes(b);
-                        if (aPinned && !bPinned) return -1;
-                        if (!aPinned && bPinned) return 1;
-                        return a.localeCompare(b);
-                    });
-
-                    topicsToRender.forEach(topic => {
-                        const topicVideos = filteredVideos.filter(v => v.category === topic);
-                        if (topicVideos.length === 0) return;
-
-                        const total = topicVideos.length;
-                        const completed = topicVideos.filter(v => v.completed).length;
-                        const percent = Math.round((completed / total) * 100);
-
-                        const pbColor = percent === 100 ? 'bg-[#eab308]' : 'bg-[#8da47e]';
-                        const shadowColor = percent === 100 ? 'shadow-[0_0_15px_#eab308]' : 'shadow-[0_0_12px_#8da47e]';
-                        const textColor = percent === 100 ? 'text-[#eab308]' : 'text-[#e0d8c0]';
-
-                        const isPinned = pinnedTopics.includes(topic);
-                        const pinIndicator = isPinned ? '📌 ' : '';
-
-                        const pbHtml = `
-                            <div class="w-full bg-[#1a1a1a] p-3 rounded-xl border border-gray-800 ${isPinned ? 'ring-1 ring-[#eab308]/50' : ''}">
-                                <div class="flex justify-between items-end pixel-text text-xs md:text-sm mb-2 font-bold relative z-10">
-                                    <span class="tracking-widest ${textColor} truncate mr-2" title="${escapeHTML(topic)}">${pinIndicator}${escapeHTML(topic)}: ${percent}%</span>
-                                    <span class="tracking-widest text-[#8da47e] whitespace-nowrap">${completed}/${total} XONG</span>
-                                </div>
-                                <div class="w-full bg-[#0a0a0a] rounded-full h-2 md:h-3 border border-gray-700 shadow-inner overflow-hidden relative z-10">
-                                    <div class="${pbColor} h-full rounded-full transition-all duration-700 ease-out ${shadowColor}" style="width: ${percent}%"></div>
-                                </div>
-                            </div>
-                        `;
-                        progressInner.insertAdjacentHTML('beforeend', pbHtml);
-                    });
-                } else {
-                    progressContainer.classList.add('hidden');
-                }
-
-                filteredVideos.forEach((video, index) => {
-                    const card = document.createElement('div');
-                    const rotate = (Math.random() * 3 - 1.5).toFixed(1);
-                    
-                    const completionClass = video.completed ? 'opacity-60 saturate-50' : '';
-                    card.className = `paper-card p-4 md:p-6 hover-spring priority-${video.priority} flex flex-col justify-between ${completionClass}`;
-                    
-                    card.setAttribute('data-orig-rotate', rotate);
-                    card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
-
-                    // === VẬT LÝ TỌA ĐỘ TUYỆT ĐỐI CÓ DELAY CHỐNG LỖI SCROLL MOBILE ===
-                    let isDragging = false;
-                    let dragTimeout = null;
-                    let startX = 0, startY = 0;
-                    let centerX = 0, centerY = 0;
-                    let targetX = 0, targetY = 0;
-                    let currentX = 0, currentY = 0;
-                    let currentRotateDeg = parseFloat(rotate);
-                    let prevMouseAngle = 0;
-                    let rAF_ID = null;
-                    let otherCards = [];
-
-                    const startCustomDrag = (e) => {
-                        if (e.type === 'mousedown' && e.button !== 0) return;
-                        if(['BUTTON', 'A', 'INPUT', 'TEXTAREA', 'svg', 'path'].includes(e.target.tagName)) return;
-                        if(e.target.closest('button') || e.target.closest('a') || e.target.closest('input') || e.target.closest('label')) return;
-
-                        clearTimeout(dragTimeout);
-                        
-                        const initDrag = () => {
-                            if (isDragging) return;
-
-                            const selection = window.getSelection();
-                            if (selection && selection.rangeCount > 0) {
-                                selection.removeAllRanges();
-                            }
-                            
-                            document.body.classList.add('select-none');
-                            isDragging = true;
-                            
-                            const pageX = e.type.includes('mouse') ? e.pageX : e.touches[0].pageX;
-                            const pageY = e.type.includes('mouse') ? e.pageY : e.touches[0].pageY;
-                            
-                            startX = pageX;
-                            startY = pageY;
-
-                            const rect = card.getBoundingClientRect();
-                            centerX = rect.left + window.scrollX + rect.width / 2;
-                            centerY = rect.top + window.scrollY + rect.height / 2;
-                            
-                            const clickOffsetX = centerX - startX;
-                            const clickOffsetY = centerY - startY;
-                            targetX = clickOffsetX;
-                            targetY = clickOffsetY;
-
-                            prevMouseAngle = Math.atan2(pageY - centerY, pageX - centerX);
-
-                            card.style.willChange = 'transform';
-                            card.style.transition = 'none';
-                            card.style.zIndex = '999';
-                            card.classList.add('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
-                            card.classList.remove('hover-spring'); 
-
-                            otherCards = [];
-                            document.querySelectorAll('.paper-card').forEach(other => {
-                                if (other === card) return;
-                                const oRect = other.getBoundingClientRect();
-                                let cx = oRect.left + window.scrollX + oRect.width / 2;
-                                let cy = oRect.top + window.scrollY + oRect.height / 2;
-                                
-                                let curOx = parseFloat(other.dataset.offsetX || '0');
-                                let curOy = parseFloat(other.dataset.offsetY || '0');
-                                
-                                otherCards.push({
-                                    el: other,
-                                    baseCX: cx - curOx,
-                                    baseCY: cy - curOy,
-                                    origRotate: parseFloat(other.getAttribute('data-orig-rotate') || '0'),
-                                    targetOx: curOx,
-                                    targetOy: curOy,
-                                    curOx: curOx,
-                                    curOy: curOy
-                                });
-                                
-                                other.style.willChange = 'transform';
-                                other.style.transition = 'none'; 
-                            });
-
-                            const updateLoop = () => {
-                                if (!isDragging) return;
-                                
-                                currentX += (targetX - currentX) * 0.5;
-                                currentY += (targetY - currentY) * 0.5;
-                                
-                                const dragCX = centerX + currentX;
-                                const dragCY = centerY + currentY;
-
-                                const currentMouseX = startX + targetX - clickOffsetX;
-                                const currentMouseY = startY + targetY - clickOffsetY;
-                                const mouseDist = Math.sqrt((currentMouseX - dragCX)**2 + (currentMouseY - dragCY)**2);
-                                
-                                if (mouseDist > 5) {
-                                    const mouseAngle = Math.atan2(currentMouseY - dragCY, currentMouseX - dragCX);
-                                    let deltaAngle = mouseAngle - prevMouseAngle;
-                                    if (deltaAngle > Math.PI) deltaAngle -= Math.PI * 2;
-                                    if (deltaAngle < -Math.PI) deltaAngle += Math.PI * 2;
-                                    
-                                    currentRotateDeg += deltaAngle * (180 / Math.PI) * 1.2;
-                                    prevMouseAngle = mouseAngle;
-                                }
-
-                                card.style.transform = `translate3d(${currentX}px, ${currentY}px, 0) rotate(${currentRotateDeg}deg)`;
-                                
-                                otherCards.forEach(other => {
-                                    let tOx = other.targetOx;
-                                    let tOy = other.targetOy;
-                                    
-                                    const dx = (other.baseCX + tOx) - dragCX;
-                                    const dy = (other.baseCY + tOy) - dragCY;
-                                    const dist = Math.sqrt(dx*dx + dy*dy);
-                                    const repelRadius = 320; 
-
-                                    if (dist < repelRadius && dist > 1) {
-                                        const overlap = repelRadius - dist;
-                                        const force = overlap * 0.15; 
-                                        tOx += (dx / dist) * force;
-                                        tOy += (dy / dist) * force;
-                                    }
-
-                                    other.curOx += (tOx - other.curOx) * 0.2;
-                                    other.curOy += (tOy - other.curOy) * 0.2;
-                                    
-                                    other.targetOx = tOx;
-                                    other.targetOy = tOy;
-
-                                    other.el.dataset.offsetX = other.curOx;
-                                    other.el.dataset.offsetY = other.curOy;
-                                    other.el.style.transform = `translate3d(${other.curOx}px, ${other.curOy}px, 0) rotate(${other.origRotate}deg)`;
-                                });
-
-                                rAF_ID = requestAnimationFrame(updateLoop);
-                            };
-                            rAF_ID = requestAnimationFrame(updateLoop);
-                        };
-
-                        if (e.type.includes('touch')) {
-                            dragTimeout = setTimeout(initDrag, 300);
-                        } else {
-                            initDrag();
-                        }
-
-                        const moveDrag = (ev) => {
-                            if (!isDragging) {
-                                clearTimeout(dragTimeout);
-                                return;
-                            }
-                            ev.preventDefault(); 
-
-                            const pX = ev.type.includes('mouse') ? ev.pageX : ev.touches[0].pageX;
-                            const pY = ev.type.includes('mouse') ? ev.pageY : ev.touches[0].pageY;
-                            
-                            targetX = (pX - startX) + (centerX - startX);
-                            targetY = (pY - startY) + (centerY - startY);
-
-                            const cX = ev.type.includes('mouse') ? ev.clientX : ev.touches[0].clientX;
-                            const cY = ev.type.includes('mouse') ? ev.clientY : ev.touches[0].clientY;
-
-                            document.querySelectorAll('.drop-zone').forEach(zone => {
-                                const zRect = zone.getBoundingClientRect();
-                                if (cX >= zRect.left && cX <= zRect.right && cY >= zRect.top && cY <= zRect.bottom) {
-                                    zone.classList.add('drag-over');
-                                } else {
-                                    zone.classList.remove('drag-over');
-                                }
-                            });
-                        };
-
-                        const stopDrag = (ev) => {
-                            clearTimeout(dragTimeout);
-                            if (!isDragging) return;
-                            isDragging = false;
-                            cancelAnimationFrame(rAF_ID);
-
-                            document.body.classList.remove('select-none');
-                            document.removeEventListener('mousemove', moveDrag);
-                            document.removeEventListener('mouseup', stopDrag);
-                            document.removeEventListener('touchmove', moveDrag);
-                            document.removeEventListener('touchend', stopDrag);
-                            document.removeEventListener('mouseleave', stopDrag);
-
-                            card.classList.remove('opacity-90', 'scale-105', 'shadow-[0_20px_50px_rgba(0,0,0,0.8)]');
-                            card.classList.add('hover-spring');
-
-                            otherCards.forEach(other => {
-                                if (other.el.resetTimeout) clearTimeout(other.el.resetTimeout);
-                                
-                                other.el.resetTimeout = setTimeout(() => {
-                                    other.el.style.transition = 'transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                                    other.el.style.transform = `translate3d(0px, 0px, 0) rotate(${other.origRotate}deg)`;
-                                    other.el.dataset.offsetX = 0;
-                                    other.el.dataset.offsetY = 0;
-                                    
-                                    setTimeout(() => {
-                                        other.el.style.transition = '';
-                                        other.el.style.willChange = 'auto';
-                                    }, 800);
-                                }, 3000); 
-                            });
-
-                            const cX = ev.type.includes('mouse') ? ev.clientX : (ev.changedTouches ? ev.changedTouches[0].clientX : (startX - window.scrollX));
-                            const cY = ev.type.includes('mouse') ? ev.clientY : (ev.changedTouches ? ev.changedTouches[0].clientY : (startY - window.scrollY));
-
-                            let droppedOnZone = false;
-                            document.querySelectorAll('.drop-zone').forEach(zone => {
-                                zone.classList.remove('drag-over');
-                                const zRect = zone.getBoundingClientRect();
-                                if (cX >= zRect.left && cX <= zRect.right && cY >= zRect.top && cY <= zRect.bottom) {
-                                    droppedOnZone = true;
-                                    const newPriority = zone.getAttribute('data-priority');
-                                    if (video.priority !== newPriority) {
-                                        video.priority = newPriority;
-                                        saveToLocalStorage();
-                                        playSound('drop');
-                                        renderUI();
-                                    }
-                                }
-                            });
-
-                            if (droppedOnZone) {
-                                card.style.willChange = 'auto';
-                                return;
-                            }
-
-                            const distance = Math.sqrt(targetX * targetX + targetY * targetY);
-                            
-                            if (distance > 100) { 
-                                card.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease';
-                                const finalRotateDeg = currentRotateDeg + 360;
-                                
-                                card.style.transform = `translate3d(${targetX * 5}px, ${targetY * 5}px, 0) rotate(${finalRotateDeg}deg) scale(0.2)`;
-                                card.style.opacity = '0';
-                                card.style.pointerEvents = 'none'; 
-                                playSound('drop');
-                                
-                                setTimeout(() => {
-                                    card.style.transition = 'none';
-                                    card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg) scale(0.5)`;
-                                    
-                                    setTimeout(() => {
-                                        card.style.transition = 'transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.5s ease';
-                                        card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg) scale(1)`;
-                                        card.style.opacity = '1';
-                                        card.style.pointerEvents = 'auto'; 
-                                        card.style.willChange = 'auto';
-                                        playSound('type'); 
-                                    }, 50);
-                                }, 3000); 
-                                
-                                currentX = 0; currentY = 0;
-                                return;
-                            }
-
-                            card.style.transition = 'transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                            card.style.transform = `translate3d(0px, 0px, 0) rotate(${rotate}deg)`;
-                            
-                            setTimeout(() => {
-                                if (!isDragging) {
-                                    card.style.zIndex = 'auto';
-                                    card.style.transition = '';
-                                    card.style.willChange = 'auto';
-                                }
-                            }, 600);
-
-                            targetX = 0; targetY = 0;
-                        };
-
-                        document.addEventListener('mousemove', moveDrag, {passive: false});
-                        document.addEventListener('mouseup', stopDrag);
-                        document.addEventListener('touchmove', moveDrag, {passive: false});
-                        document.addEventListener('touchend', stopDrag);
-                        document.addEventListener('mouseleave', stopDrag);
-                    };
-
-                    card.addEventListener('mousedown', startCustomDrag);
-                    card.addEventListener('touchstart', startCustomDrag, {passive: true});
-                    // ==========================================================
-
-                    let domain = '';
-                    try {
-                        const urlObj = new URL(video.link);
-                        domain = urlObj.hostname.replace('www.', '');
-                    } catch(e) { domain = 'Liên kết không xác định'; }
-
-                    const isChecked = selectedIds.has(video.id) ? 'checked' : '';
-                    const checkboxHtml = `
-                        <div class="absolute top-4 right-4 z-20">
-                            <input type="checkbox" class="w-5 h-5 md:w-6 md:h-6 accent-[#e46b5a] cursor-pointer hover:scale-110 transition-transform" onclick="toggleSelection(event, '${video.id}')" ${isChecked}>
-                        </div>
-                    `;
-
-                    let actionButtons = '';
-                    if (isTrashView) {
-                        actionButtons = `
-                            <button onclick="restoreVideo('${video.id}')" class="text-gray-400 hover:text-green-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Tha tội">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                                </svg>
-                            </button>
-                            <button onclick="deleteVideo('${video.id}')" class="text-gray-400 hover:text-red-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Xóa vĩnh viễn">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                        `;
-                    } else {
-                        actionButtons = `
-                            <button onclick="toggleComplete('${video.id}')" class="${video.completed ? 'text-green-500' : 'text-gray-400 hover:text-green-500'} hover:scale-125 transition-transform p-1 cursor-pointer" title="Hoàn thành">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7" />
-                                </svg>
-                            </button>
-                            <button onclick="editVideo('${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Chỉnh sửa">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                            </button>
-                            <button onclick="deleteVideo('${video.id}')" class="text-gray-400 hover:text-red-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Tiễn ra pháp trường">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                            </button>
-                            <button type="button" onclick="toggleSave(event, '${video.id}')" class="text-gray-400 hover:text-blue-500 hover:scale-125 transition-transform p-1 cursor-pointer" title="Sao chép nội dung mục (Ctrl+C)">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                </svg>
-                            </button>
-                        `;
-                    }
-
-                    card.innerHTML = `
-                        ${checkboxHtml}
-                        <div class="washi-tape" style="background-color: ${tapeColors[video.priority]}; transform: translateX(-50%) rotate(${Math.random() * 4 - 2}deg)"></div>
-                        
-                        <div class="mt-5 pr-8">
-                            <div class="flex justify-between items-center mb-4 gap-2 flex-wrap">
-                                <span class="bg-[#222] text-[#8da47e] text-xs px-3 py-1.5 rounded pixel-text border border-[#8da47e]/50 font-bold shadow-sm">
-                                    ${escapeHTML(video.category)}
-                                </span>
-                                <span class="text-xs font-bold px-2 py-1 bg-white/50 rounded-md border text-gray-800 shadow-sm whitespace-nowrap" title="Mức độ ưu tiên">
-                                    ${priorityIcon[video.priority]}
-                                </span>
-                            </div>
-                            
-                            <h3 class="font-bold text-2xl text-[#1a1a1a] mb-2 leading-snug break-words ${video.completed ? 'line-through decoration-2 decoration-[#e46b5a]/50' : ''}">${escapeHTML(video.title)}</h3>
-                            
-                            <a href="${video.link}" target="_blank" class="inline-block text-sm text-[#e46b5a] font-bold hover:text-[#c45242] underline decoration-dashed underline-offset-4 mb-5 break-words line-clamp-2 transition-colors">
-                                ↳ Khám phá: ${domain}
-                            </a>
-
-                            <div class="bg-black/5 p-4 rounded-xl border border-black/10 mb-4 shadow-inner break-words">
-                                <p class="handwritten whitespace-pre-wrap ${video.completed ? 'line-through decoration-1 decoration-gray-400' : ''}">${escapeHTML(video.note)}</p>
-                            </div>
-                        </div>
-
-                        <div class="flex items-center justify-between mt-auto pt-4 border-t-2 border-dashed border-gray-300/60">
-                            <span class="text-xs font-bold text-gray-500 pixel-text text-base">ID:${video.id.slice(-4)} | ${video.date}</span>
-                            <div class="flex items-center gap-1 sm:gap-2">
-                                ${actionButtons}
-                            </div>
-                        </div>
-                    `;
-                    grid.appendChild(card);
-                });
-            }
-        }
-
-        function renderUI() {
-            renderFilters();
-            renderPriorityFilters();
-            renderVideos();
-        }
-
-        renderUI();
     </script>
 </body>
 </html>
