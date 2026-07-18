@@ -3,11 +3,12 @@ window.toggleSave = function(e, id) {
             const video = videos.find(v => v.id === id);
             
             if (video) {
-                const content = video.note; // Chỉ sao chép đúng ghi chú
+                // Chỉ copy nội dung ghi chú (note)
+                const content = video.note;
+                const btn = e.currentTarget;
                 
-                const handleSuccess = () => {
+                const showSuccess = () => {
                     playSound('success');
-                    const btn = e.currentTarget;
                     const originalSVG = btn.dataset.orig || btn.innerHTML;
                     if (!btn.dataset.orig) btn.dataset.orig = originalSVG;
                     
@@ -20,33 +21,36 @@ window.toggleSave = function(e, id) {
                     }, 1500);
                 };
 
-                const handleError = (err) => {
-                    console.error('Không thể copy: ', err);
-                    alert("Trình duyệt không hỗ trợ copy tự động, vui lòng thử lại hoặc copy thủ công!");
-                };
-
-                // Fallback tương thích mọi trình duyệt
-                if (navigator.clipboard && window.isSecureContext) {
-                    navigator.clipboard.writeText(content).then(handleSuccess).catch(handleError);
-                } else {
+                const fallbackCopy = (text) => {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.top = "0";
+                    textArea.style.left = "0";
+                    textArea.style.position = "fixed";
+                    textArea.style.opacity = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    
                     try {
-                        const textArea = document.createElement("textarea");
-                        textArea.value = content;
-                        textArea.style.position = "fixed";
-                        textArea.style.left = "-9999px";
-                        document.body.appendChild(textArea);
-                        textArea.select();
                         const successful = document.execCommand('copy');
-                        document.body.removeChild(textArea);
-                        
                         if (successful) {
-                            handleSuccess();
+                            showSuccess();
                         } else {
-                            handleError('execCommand failed');
+                            prompt("Trình duyệt chặn copy ẩn, vui lòng copy thủ công (Ctrl+C):", text);
                         }
                     } catch (err) {
-                        handleError(err);
+                        prompt("Trình duyệt chặn copy ẩn, vui lòng copy thủ công (Ctrl+C):", text);
                     }
+                    document.body.removeChild(textArea);
+                };
+
+                if (navigator.clipboard && window.isSecureContext) {
+                    navigator.clipboard.writeText(content)
+                        .then(showSuccess)
+                        .catch(() => fallbackCopy(content));
+                } else {
+                    fallbackCopy(content);
                 }
             }
         }
